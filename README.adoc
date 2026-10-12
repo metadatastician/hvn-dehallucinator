@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 // SPDX-FileCopyrightText: 2024-2026 Jonathan D.A. Jewell (hyperpolymath)
-= Harvard Dehallucinator
+= Harvard vs von Neumann Dehallucinator
 :toc:
 :toc-placement: preamble
 
@@ -12,9 +12,9 @@ image:https://img.shields.io/badge/Provenance-Quantum--Safe-blueviolet[Quantum-S
 
 // ── Standard & quality gates ────────────────────────────────────────────────
 image:https://img.shields.io/badge/RSR-Rhodium_Standard-9C27B0[Rhodium Standard Repository,link="https://github.com/hyperpolymath/rhodium-standard-repositories"]
-image:https://api.scorecard.dev/projects/github.com/hyperpolymath/harvard-dehallucinator/badge[OpenSSF Scorecard,link="https://scorecard.dev/viewer/?uri=github.com/hyperpolymath/harvard-dehallucinator"]
-image:https://sonarcloud.io/api/project_badges/measure?project=hyperpolymath_harvard-dehallucinator&metric=alert_status[SonarQube Quality Gate,link="https://sonarcloud.io/summary/new_code?id=hyperpolymath_harvard-dehallucinator"]
-image:https://archive.softwareheritage.org/badge/origin/https://github.com/hyperpolymath/harvard-dehallucinator/[Archived in Software Heritage,link="https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/hyperpolymath/harvard-dehallucinator"]
+image:https://api.scorecard.dev/projects/github.com/hyperpolymath/hvn-dehallucinator/badge[OpenSSF Scorecard,link="https://scorecard.dev/viewer/?uri=github.com/hyperpolymath/hvn-dehallucinator"]
+image:https://sonarcloud.io/api/project_badges/measure?project=hyperpolymath_hvn-dehallucinator&metric=alert_status[SonarQube Quality Gate,link="https://sonarcloud.io/summary/new_code?id=hyperpolymath_hvn-dehallucinator"]
+image:https://archive.softwareheritage.org/badge/origin/https://github.com/hyperpolymath/hvn-dehallucinator/[Archived in Software Heritage,link="https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/hyperpolymath/hvn-dehallucinator"]
 
 // ── Provenance & ecosystem ──────────────────────────────────────────────────
 image:https://img.shields.io/badge/Idris-Inside-5E5086?logo=idris&logoColor=white[Idris Inside,link="https://github.com/hyperpolymath/proven"]
@@ -190,12 +190,12 @@ commit, before any repair:
 * `state.txt` was written `16 / 16 / 0 / COMPLETE` at *19:22:46* on 23 Aug.
 * The first file of the migration it claimed to have finished was ported at
   *20:50:03* — an hour and 27 minutes _later_.
-* Bucketing all *6,564* files stamped `// Ported via Harvard Engine (Semantic pass)`
+* Bucketing all *6,564* files stamped `// Ported via HvN Engine (Semantic pass)`
   against that timestamp gives *BEFORE 0 / AFTER 6,564*.
 * `attempts` was `0`. The circuit breaker never armed.
 * `state.txt` was never written again.
 * In between, an ADR was committed declaring the estate migration
-  _"governed by the Harvard Dehallucinator state engine"_.
+  _"governed by the HvN Dehallucinator state engine"_.
 
 The cause was a type signature. The original engine had:
 
