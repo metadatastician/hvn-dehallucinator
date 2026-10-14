@@ -74,6 +74,12 @@ case "$PROVER" in
   coq)    CMD=coqc;   EXT=v;    ERROR_RE=''        ;;
 esac
 
+# Agda is the proof kernel: --safe --without-K, no library files, every
+# interface re-checked. Siblings fetched at their pinned commits by
+# scripts/fetch-siblings.sh are on the include path; nothing else is.
+AGDA_FLAGS=(--safe --without-K --no-libraries --ignore-interfaces --double-check -i .)
+for d in "$ROOT"/_build/dependencies/*/src; do [ -d "$d" ] && AGDA_FLAGS+=(-i "$d"); done
+
 check_one() {
   # $1 source-root (rel to ROOT), $2 module (rel to source-root).
   # Sets LAST_OUT to the tool output on failure; returns 0 iff the module compiles.
@@ -82,7 +88,7 @@ check_one() {
   case "$PROVER" in
     idris2) out="$(cd "$ROOT/$root" && idris2 --check "$rel" 2>&1)"; rc=$? ;;
     lean4)  out="$(cd "$ROOT/$root" && lean          "$rel" 2>&1)"; rc=$? ;;
-    agda)   out="$(cd "$ROOT/$root" && agda --safe    "$rel" 2>&1)"; rc=$? ;;
+    agda)   out="$(cd "$ROOT/$root" && agda "${AGDA_FLAGS[@]}" "$rel" 2>&1)"; rc=$? ;;
     coq)    out="$(cd "$ROOT/$root" && coqc           "$rel" 2>&1)"; rc=$? ;;
   esac
   set -e

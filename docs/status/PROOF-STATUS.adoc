@@ -17,11 +17,15 @@ The engine's guarantee is *tested, not proved*. Four properties are each
 checked by an executable suite that can fail: COMPLETE is written only from a
 measured zero, a caller cannot assert progress, COMPLETE regresses, and the
 attempt budget trips. That suite passes locally (receipt below), but no workflow
-runs it yet. Nothing about the engine is mechanised on `main`. The engine proofs
-recorded as done on 2026-08-27 are not in anything pushed (see below). HDH-01
-(#28) adds the first kernel proof (`Fibre.agda`), the witness block, and the
-Haruspex design. The proof files inherited from the template are not claims
-about this project; HDH-02 (#29) tracks them.
+runs it yet. What *is* proved is the epistemic core of the guarantee,
+in the Agda kernel, against a model of the engine's update
+(`verification/proofs/agda/Fibre.agda`, HD-F). The model shows that the recorded
+state alone does not identify what remains, and that COMPLETE needs an inhabited
+measured case. That model is not yet tied to `Engine.hs` by any proof. The
+engine proofs recorded as done on 2026-08-27 are not in anything pushed (see
+below). HDH-01 (#28) still adds the witness block and the Haruspex design. The
+proof files inherited from the template are not claims about this project;
+HDH-02 (#29) tracks them.
 
 == Ledger
 
@@ -37,7 +41,10 @@ about this project; HDH-02 (#29) tracks them.
 | HD-1 | The guarantee, regressability and budget trip mechanised (`EngineCore.lean`, 19 theorems; TLA+ gate `check-tla.sh`; 43/43 gate tests, which HDH-01 gives as 19 guarantee + 24 hardening) | OPEN | absent from everything pushed; see <<engine-proofs-2026-08-27>>
 | HD-2 | This file reflects the tree | TESTED | `scripts/check-proof-status.sh`, with negative controls in `tests/proofs/check_proof_status_test.sh`
 | HD-W | Regress and refuse paths print the blind-spot witness (two readings of the record that disagree on `COMPLETE`) | OPEN | HDH-01: planned in `engine/Engine.hs`, with the 2026-08-23/24 Incident replay as its test
-| HD-F | `COMPLETE` needs an inhabited measured case; an asserted and a measured count that differ refute identification | OPEN | HDH-01: planned `verification/proofs/agda/Fibre.agda` and `tests/reject/AssertedComplete.agda`, consuming residual-evidence-types by pin
+| HD-F | In a model of the engine's update: `COMPLETE` needs an inhabited measured case whose every candidate has nothing remaining; an asserted and a measured count that differ are two readings of one record that refute identification; "done" against a non-zero measurement has no case | PROVEN | `verification/proofs/agda/Fibre.agda#complete-needs-case`, `verification/proofs/agda/Fibre.agda#asserted-not-identified`, `verification/proofs/agda/Fibre.agda#hallucinated-complete-has-no-case`, `verification/proofs/agda/Fibre.agda#incident-not-complete`; checked by `scripts/check-agda-kernel.sh` in `.github/workflows/proof-kernel.yml`
+| HD-F-R | The Incident as a refused derivation: `COMPLETE` from the record 16/16/0/`COMPLETE` alone does not typecheck | PROVEN | `tests/reject/AssertedComplete.agda`, refused at its declaration; the gate's own negative controls in `tests/proofs/agda_kernel_gate_test.sh`
+| HD-F-E | `Fibre.agda`'s `update` agrees with `updateFromVerifier` in `Engine.hs` | ASSUMED | by inspection only: `verification/proofs/agda/Fibre.agda#update s m = task`, `engine/Engine.hs#done = max 0 (totalItems st1 - remaining)`; no extraction or differential test ties them
+| RE | Consumed from residual-evidence-types by pin, re-checked here under `--double-check`: `Core.Candidate`, `Case`, `Holds`, `Identified`; `Revision.disagreeing-not-identified` (via `Core.different-candidates-refute-identification`), `Revision.refuted-not-holds` | PROVEN | `scripts/fetch-siblings.sh#97244f5cb63bd6697caff261b187b62e9788b692`, re-checked here at that pin by `scripts/check-agda-kernel.sh` (the sibling's own hosted receipt, run 36740394802, is for its earlier commit `befdf96`)
 | HD-H | Haruspex: the same check before any tokens are spent | OPEN | HDH-01: planned design document; no repository yet
 | ABI-1..5, TP-1 | Idris2 ABI and core-type proofs | OPEN | template files under `verification/proofs/idris2/`; verdicts in its MANIFEST were taken in the template repo; HDH-02 (#29)
 | TP-2 | Public API type safety (Lean) | OPEN | template `verification/proofs/lean4/ApiTypes.lean`, quarantined, has never compiled; HDH-02 (#29)
@@ -52,7 +59,6 @@ MANIFEST verdicts are dated 2026-07-17, before this repository existed.
 [cols="2,3",options="header"]
 |===
 | File | What it is
-| `verification/proofs/agda/Properties.agda` | List-append length and `suc` monotonicity examples; imports agda-stdlib, so it cannot be checked under the kernel flags (`--no-libraries`). HDH-01 replaces it with `Fibre.agda`.
 | `verification/proofs/coq/TypeSafety.v` | Template example; tracked in HDH-02 (#29).
 | `verification/proofs/idris2/`, `verification/proofs/lean4/` | The ABI-1..5 / TP-1 / TP-2 rows above; HDH-02 (#29).
 |===
@@ -61,6 +67,11 @@ MANIFEST verdicts are dated 2026-07-17, before this repository existed.
 specified the template's example request pipeline
 (`idle → scanning → routing → dispatching`), not this engine, and no TLC gate
 ever ran it. A TLA+ model of the engine belongs to HD-1.
+
+The template's `verification/proofs/agda/Properties.agda` (list-append length,
+`suc` monotonicity) was replaced by `Fibre.agda` on 2026-10-14. It imported
+agda-stdlib, so it could not be checked under the kernel flags
+(`--no-libraries`).
 
 [[engine-proofs-2026-08-27]]
 == Engine proofs of 2026-08-27: absent
@@ -99,6 +110,31 @@ HD-2: `bash scripts/check-proof-status.sh` and
 `bash tests/proofs/check_proof_status_test.sh`; both run in
 `.github/workflows/estate-rules.yml`.
 
+HD-F, HD-F-R, RE: local run, 2026-10-14, Agda 2.6.3; the same gate runs in
+`.github/workflows/proof-kernel.yml`:
+
+[source,text]
+----
+$ bash scripts/check-agda-kernel.sh
+residual-evidence-types @ 97244f5cb63bd6697caff261b187b62e9788b692
+=== agda proof check ===
+Agda version 2.6.3
+
+  verification/proofs/agda       Fibre.agda               PASS
+
+=== manifest coverage (verification/proofs/agda) ===
+  all 1 .agda file(s) accounted for
+
+RESULT: PASS -- gated modules compile; quarantined modules still fail as recorded
+
+=== expected rejections (tests/reject) ===
+  PASS: refused AssertedComplete at AssertedComplete.agda:15,52-56
+RESULT: PASS -- kernel modules check; all 1 expected rejection(s) refused
+----
+
+The refusal is the intended one: `snd world != zero of type Nat when checking
+that the expression refl has type Complete world`.
+
 == Verification commands
 
 [source,bash]
@@ -106,6 +142,8 @@ HD-2: `bash scripts/check-proof-status.sh` and
 just test                                   # the guarantee suite (needs runghc)
 bash scripts/check-proof-status.sh          # this ledger against the tree
 bash tests/proofs/check_proof_status_test.sh  # the ledger checker's negative controls
+bash scripts/check-agda-kernel.sh           # Agda kernel: pinned siblings, MANIFEST, tests/reject
+bash tests/proofs/agda_kernel_gate_test.sh  # the kernel gate's negative controls
 ----
 
 == Changelog
@@ -114,4 +152,5 @@ bash tests/proofs/check_proof_status_test.sh  # the ledger checker's negative co
 |===
 | Date | Change
 | 2026-10-14 | Template replaced by the ledger; engine-proofs search recorded; template `StateMachine.tla` removed; HD-2 checker added (HDH-01).
+| 2026-10-14 | HD-F, HD-F-R, RE: OPEN → PROVEN with `Fibre.agda`, `tests/reject/AssertedComplete.agda` and the Proof Kernel gate; HD-F-E recorded as ASSUMED; template `Properties.agda` replaced (HDH-01).
 |===

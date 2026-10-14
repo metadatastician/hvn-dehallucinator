@@ -1,0 +1,42 @@
+# This workflow is managed by gh actions-lock.
+# SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
+#
+# Proof Kernel — the Agda gate, scripts/check-agda-kernel.sh:
+#   * residual-evidence-types fetched at its pin (scripts/fetch-siblings.sh);
+#   * every module in verification/proofs/agda/MANIFEST under
+#     --safe --without-K --no-libraries --ignore-interfaces --double-check;
+#   * every tests/reject fixture refused at its own declaration;
+# then the gate's own negative controls, so a vacuous gate cannot stay green.
+# Agda comes from the Ubuntu 24.04 archive (agda-bin 2.6.3), the version the
+# MANIFEST was ground-truthed with.
+
+name: Proof Kernel
+on:
+  push:
+    branches: [main]
+  pull_request:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  agda-kernel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      LC_ALL: C.UTF-8
+      LANG: C.UTF-8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+      - name: Install Agda (Ubuntu 24.04 archive)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends agda-bin
+          agda --version
+      - name: Agda kernel gate
+        run: bash scripts/check-agda-kernel.sh
+      - name: Gate refuses its negative controls
+        run: bash tests/proofs/agda_kernel_gate_test.sh

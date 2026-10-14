@@ -1,4 +1,7 @@
 # Agda proof manifest — read by scripts/check-proofs.sh agda
 # Format: <source-root>|<module-relative-to-source-root>|gated|quarantine|<note>
-# Ground-truthed 2026-07-17 with agda (agda --safe).
-verification/proofs/agda|Properties.agda|gated| compiles under `agda --safe`
+# Ground-truthed 2026-10-14 with Agda 2.6.3 under the kernel flags
+# (--safe --without-K --no-libraries --ignore-interfaces --double-check), with
+# residual-evidence-types at its pin (scripts/fetch-siblings.sh) on the include
+# path. Run the whole gate, rejections included, with scripts/check-agda-kernel.sh.
+verification/proofs/agda|Fibre.agda|gated| COMPLETE needs an inhabited measured case; the record alone does not identify what remains
