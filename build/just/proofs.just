@@ -26,9 +26,9 @@ proof-check-idris2:
 proof-check-lean4:
     @bash scripts/check-proofs.sh lean4
 
-# Check Agda proofs (per MANIFEST; fatal if agda absent)
+# Agda kernel gate: pinned siblings, MANIFEST modules, tests/reject refused (fatal if agda absent)
 proof-check-agda:
-    @bash scripts/check-proofs.sh agda
+    @bash scripts/check-agda-kernel.sh
 
 # Check Coq proofs (per MANIFEST; fatal if coqc absent)
 proof-check-coq:
