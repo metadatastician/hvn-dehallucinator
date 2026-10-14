@@ -29,6 +29,10 @@
           {
             "context": "agda-kernel",
             "integration_id": 15368
+          },
+          {
+            "context": "scan / gitleaks",
+            "integration_id": 15368
           }
         ]
       }

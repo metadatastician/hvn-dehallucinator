@@ -18,7 +18,7 @@ governed by rulesets, not classic protection.
 | *the metadatastician organisation*, once, for all repositories' default branches. Applied per repository only until the organisation-level layer exists, and then deleted from the repository.
 
 | `default-branch-checks.json`
-| repository: the status checks this repository's own workflows emit (`estate-rules`, `guarantee`, `agda-kernel`)
+| repository: the status checks this repository's own workflows emit (`estate-rules`, `guarantee`, `agda-kernel`, `scan / gitleaks`). It subsumes the live `Secret-Scan-Floor` ruleset, which requires `scan / gitleaks` alone; delete that one once this is imported
 | this repository
 
 | `tag-protection.json`
@@ -35,11 +35,14 @@ carry their own copy of the generic rules instead.
 
 A required context must be the exact check-run name of a job that a workflow
 here emits. That is the job's `name:` if it has one, otherwise its id.
-Matrix jobs and reusable-workflow calls never qualify. A context that never
-reports leaves every pull request pending forever: `estate-audit` did that
-here until 2026-10-14. `scripts/check-ruleset-contexts.sh` enforces the rule
-in CI, and `tests/workflows/check_ruleset_contexts_test.sh` holds its
-negative controls.
+A job that calls a reusable workflow reports one check per called job, as
+`<caller> / <called>`; `scan / gitleaks` from `secret-scanner.yml` is one. The
+checker confirms the caller is a reusable call here; the called job's name lives
+in the reusable workflow at its pinned ref and is not verified. Matrix jobs
+never qualify. A context that never reports leaves every pull request pending
+forever: `estate-audit` did that here until 2026-10-14.
+`scripts/check-ruleset-contexts.sh` enforces the rule in CI, and
+`tests/workflows/check_ruleset_contexts_test.sh` holds its negative controls.
 
 == Applying
 
