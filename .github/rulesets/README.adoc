@@ -1,0 +1,53 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
+= Rulesets
+
+GitHub does not read these files. They are the reviewed source of the
+rulesets applied in the GitHub UI or API. Change them here first, then
+re-import. `.github/settings.yml` declares no branch protection: `main` is
+governed by rulesets, not classic protection.
+
+== Layers
+
+[cols="2,2,3",options="header"]
+|===
+| File | Layer | Where it belongs
+
+| `default-branch-generic.json`
+| generic: no deletion, no force push, signed commits, pull requests with one code-owner review and resolved threads; repository admins may bypass only through a pull request
+| *the metadatastician organisation*, once, for all repositories' default branches. Applied per repository only until the organisation-level layer exists, and then deleted from the repository.
+
+| `default-branch-checks.json`
+| repository: the status checks this repository's own workflows emit (`estate-rules`, `guarantee`, `agda-kernel`)
+| this repository
+
+| `tag-protection.json`
+| generic: release tags are immutable
+| the organisation, as above
+|===
+
+GitHub enforces every ruleset that applies to a ref, and the most restrictive
+outcome wins. So the generic layer is written once at organisation level, and
+each repository adds only what is true of it alone. Today, many repositories
+carry their own copy of the generic rules instead.
+
+== Required checks
+
+A required context must be the exact check-run name of a job that a workflow
+here emits. That is the job's `name:` if it has one, otherwise its id.
+Matrix jobs and reusable-workflow calls never qualify. A context that never
+reports leaves every pull request pending forever: `estate-audit` did that
+here until 2026-10-14. `scripts/check-ruleset-contexts.sh` enforces the rule
+in CI, and `tests/workflows/check_ruleset_contexts_test.sh` holds its
+negative controls.
+
+== Applying
+
+* Repository: Settings → Rules → Rulesets → New ruleset → Import a ruleset,
+  then choose the JSON file.
+* Organisation (generic layer): metadatastician → Settings → Repository →
+  Rulesets → New ruleset → Import. Then add a repository condition
+  (`"repository_name": {"include": ["~ALL"], "exclude": []}`) beside
+  `ref_name`. Organisation rulesets require it.
+* Afterwards, delete any classic branch protection rule left on `main`
+  (Settings → Branches), so that rulesets are the only source.
