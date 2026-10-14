@@ -24,7 +24,8 @@
 -- engine prints when it regresses. The engine writes COMPLETE only from an
 -- inhabited measured case in which every candidate has nothing remaining
 -- (complete-needs-case). Asserting "done" against a non-zero measurement leaves
--- no world at all (hallucinated-complete-has-no-case).
+-- no world at all (hallucinated-complete-has-no-case). When no count can be
+-- taken, a recorded COMPLETE is demoted, never kept (refuse-never-complete).
 --
 -- tests/reject/AssertedComplete.agda is the 2026-08-23/24 Incident as a
 -- refused derivation: COMPLETE from the record 16/16/0/COMPLETE alone.
@@ -62,6 +63,16 @@ derive (suc _) = running
 
 update : TaskState → Nat → TaskState
 update s m = task (totalItems s) (totalItems s - m) (suc (attempts s)) (derive m)
+
+-- updateFromVerifier when no count can be taken: the attempt is charged and a
+-- recorded COMPLETE, which no measurement now confirms, is demoted to RUNNING.
+demote : Status → Status
+demote running        = running
+demote complete       = running
+demote emergency-stop = emergency-stop
+
+refuse : TaskState → TaskState
+refuse s = task (totalItems s) (completed s) (suc (attempts s)) (demote (status s))
 
 ------------------------------------------------------------------------
 -- Worlds, the observation, the claim, the evidence
@@ -130,6 +141,16 @@ complete-needs-case : (s : TaskState) (m : Nat) →
 complete-needs-case s zero    _  = measured s zero , λ { (w , _ , counted) → counted }
 complete-needs-case s (suc m) ()
 
+-- Without a measurement there is no case, so the refuse path never leaves
+-- COMPLETE behind, whatever the record said (record-does-not-hold-complete).
+demote-not-complete : (t : Status) → ¬ (demote t ≡ complete)
+demote-not-complete running        ()
+demote-not-complete complete       ()
+demote-not-complete emergency-stop ()
+
+refuse-never-complete : (s : TaskState) → ¬ (status (refuse s) ≡ complete)
+refuse-never-complete s = demote-not-complete (status s)
+
 -- A non-zero measurement refutes COMPLETE at a witness world of its own case.
 measured-nonzero-refutes : (s : TaskState) (k : Nat) →
   Refuted (measured s (suc k)) Complete
@@ -171,3 +192,8 @@ incident-not-complete =
 -- At the measured count the engine writes RUNNING, with nothing completed.
 incident-regresses : update incident incident-measured ≡ task 16 0 1 running
 incident-regresses = refl
+
+-- And if no count can be taken (the original `update 0`), the recorded
+-- COMPLETE is demoted and the attempt charged.
+incident-refused : refuse incident ≡ task 16 16 1 running
+incident-refused = refl

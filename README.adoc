@@ -141,8 +141,9 @@ implementation did not do — see <<The Incident (2026-08-23/24)>> below.
 
 * `update <targetdir>` runs the verifier and derives `remaining` from its output.
 * `COMPLETE` is reachable only when the verifier itself returns `0`.
-* If the verifier cannot run, the status is left unchanged and the engine exits
-  non-zero. Silence is never read as success.
+* If the verifier cannot run, the engine exits non-zero and writes no progress.
+  A recorded `COMPLETE` is demoted to `RUNNING`, because nothing now confirms
+  it; any other status is left as it was. Silence is never read as success.
 * Status can move *backwards* out of `COMPLETE` if a later measurement
   regresses. Completion is a measurement, not an achievement.
 * Every `update` costs an attempt, so a looping agent trips the circuit breaker.
@@ -153,8 +154,8 @@ zero, `update` prints a `WITNESS regress` block with two readings of the
 recorded state, *as recorded* (remaining 0) and *as measured*. Both fit the
 record and they disagree on `COMPLETE`, so the record alone never decided it.
 If no count can be taken, a `WITNESS refuse` block says there is no measured
-case to derive `COMPLETE` from. Both go to the command's output, never to the
-state file. The underlying fact is proved in the Agda kernel against a model of
+case to derive `COMPLETE` from, and a recorded `COMPLETE` is demoted. Both
+blocks go to the command's output, never to the state file. The underlying fact is proved in the Agda kernel against a model of
 the update (`verification/proofs/agda/Fibre.agda`). Its status, and what is not
 yet proved, is in `docs/status/PROOF-STATUS.adoc`.
 

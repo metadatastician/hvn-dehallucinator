@@ -154,3 +154,7 @@ verification/proofs/coq/.*.aux
 # harvard-dehallucinator runtime state
 state/db.json
 state/state.txt.tmp
+
+# TLC working files (scripts/check-tla.sh uses a temporary -metadir)
+verification/proofs/tlaplus/states/
+*_TTrace_*
