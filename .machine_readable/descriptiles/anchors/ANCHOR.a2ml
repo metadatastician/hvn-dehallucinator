@@ -5,11 +5,11 @@
 
 [metadata]
 version = "1.0.0"
-last-updated = "2026-08-25"
+last-updated = "2026-10-14"
 
 [anchor]
 schema = "hyperpolymath.anchor/1"
-repo = "hyperpolymath/harvard-dehallucinator"
+repo = "metadatastician/hvn-dehallucinator"
 authority = "upstream-canonical"
 
 purpose = [

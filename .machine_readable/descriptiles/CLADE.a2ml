@@ -6,28 +6,33 @@
 # The identity below is DERIVED. The clade is NOT — a human must choose it.
 
 [identity]
-# THE UUID IS DERIVED, NOT ALLOCATED, NOT INVENTED. The registry spec
-# (gv-clade-index: docs/SPEC-clade-verisim-portal.adoc §Identity Model):
+# THE UUID IS DERIVED, NOT ALLOCATED, NOT INVENTED. It is ESTATE-UUID-V8
+# profile C (hyperpolymath/standards ADR-008, owner rulings D305/D305b):
 #
-#     uuid = UUIDv5(namespace = URL, name = "github.com/<owner>/<name>")
+#     uuid = first 16 bytes of SHA-256( "gv-clade-index" ":" "github.com/<owner>/<name>" ),
+#            version nibble 8, variant 10
 #
-# "The same repo always produces the same UUID without a lookup table." It is a
-# fact anyone can recompute and check — never copy one from another repo, and
+# The same repo always produces the same uuid without a lookup table. It is a
+# fact anyone can recompute and check: never copy one from another repo, and
 # never make one up. Recompute this one any time with:
 #
-#     uuidgen --sha1 --namespace @url --name "github.com/hyperpolymath/harvard-dehallucinator"
+#     scripts/derive-clade-uuid.sh github.com/metadatastician/hvn-dehallucinator
 #
-# Verify the method first by reproducing a known worked example:
-#     janus example -> e216170e-ff47-5a5c-bbdd-15e61c8190c8
+# tests/identity/clade_uuid_test.sh fails if this uuid stops matching the forge
+# path recorded under [forges] below.
 #
 # The owner segment is part of the derived name, so it is part of the IDENTITY:
 # the same repo hosted under a different owner has a different uuid. Record the
-# owner that is TRUE TODAY, and re-derive if it ever moves.
-uuid = "eeb16b57-a496-5b9b-9653-c8f83221bb6f"
+# owner that is TRUE TODAY, and re-derive if it ever moves. This repo moved from
+# hyperpolymath/harvard-dehallucinator; its earlier identity was a UUIDv5 of that
+# path, which ADR-008 retires. gv-clade-index's spec still states UUIDv5 and
+# has no registered profile C domain yet; `gv-clade-index` is the domain used
+# here until the registry adopts one (re-mint on 2026-10-14, owner decision).
+uuid = "b48d084c-baa5-8415-b968-3b98b3f69a71"
 primary-forge = "github"
-primary-owner = "hyperpolymath"
-canonical-name = "harvard-dehallucinator"
-prefixed-name = "UNASSIGNED-harvard-dehallucinator"   # becomes <primary>-harvard-dehallucinator once the clade is chosen
+primary-owner = "metadatastician"
+canonical-name = "hvn-dehallucinator"
+prefixed-name = "UNASSIGNED-hvn-dehallucinator"   # becomes <primary>-hvn-dehallucinator once the clade is chosen
 
 [clade]
 # ---------------------------------------------------------------------------
@@ -83,7 +88,7 @@ assigned = "2026-08-25"
 rationale = ""                # why THIS category — in value-proposition terms
 
 [forges]
-github = "hyperpolymath/harvard-dehallucinator"
+github = "metadatastician/hvn-dehallucinator"
 gitlab = ""       # populated if/when mirrored
 bitbucket = ""    # populated if/when mirrored
 
@@ -91,7 +96,7 @@ bitbucket = ""    # populated if/when mirrored
 type = "standalone"           # standalone | monorepo | monorepo-child | inflated | deflated
 parent = ""                   # a monorepo PARENT — never a description of this repo
 born = "2026-08-25"
-previous-names = []
+previous-names = ["harvard-dehallucinator"]
 instantiated-from = "rsr-template-repo"
 
 [status]
@@ -109,6 +114,11 @@ ended = ""
 phase = "incubating"
 since = "2026-08-25"
 note = "created from rsr-template-repo; clade not yet chosen; not yet registered"
+
+[[status.history]]
+phase = "incubating"
+since = "2026-10-14"
+note = "moved to metadatastician/hvn-dehallucinator (was hyperpolymath/harvard-dehallucinator); identity re-derived as ESTATE-UUID-V8 profile C; still not registered"
 
 # ---------------------------------------------------------------------------
 # REGISTRATION IS NOT DERIVATION. Deriving the uuid above does not register this
