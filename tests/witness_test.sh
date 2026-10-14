@@ -11,7 +11,8 @@
 #   * regress: `update` on a 15,272-file tree must write RUNNING with nothing
 #     completed (16/0/1, Fibre.incident-regresses) and print the witness:
 #     recorded remaining 0, measured remaining 15272, claim COMPLETE;
-#   * refuse: the original attack, `update 0`, must exit 4 and print the
+#   * refuse: the original attack, `update 0`, must exit 4, demote the recorded
+#     COMPLETE that no measurement confirms (16/16/1/RUNNING), and print the
 #     no-case block instead of a bare error;
 #   * controls: when record and measurement agree on COMPLETE, or the record
 #     does not claim COMPLETE, no witness is printed.
@@ -72,9 +73,10 @@ out="$($ENGINE update 0 2>&1)"; rc=$?
 chk "refused (exit 4)"                         "$rc" "4"
 chk "no-case block printed"                    "$(has "$out" "WITNESS refuse: no measured case, so COMPLETE cannot be derived")" "1"
 chk "measured: none, with the reason"          "$(has "$out" "  measured: none (target directory does not exist: 0)")" "1"
-chk "says the recorded COMPLETE is unconfirmed" "$(has "$out" "The recorded COMPLETE is left unchanged but no measurement confirms it.")" "1"
+chk "says the recorded COMPLETE is demoted"    "$(has "$out" "The recorded COMPLETE is demoted to RUNNING: no measurement confirms it.")" "1"
+chk "status line reports the demotion"         "$(has "$out" "status demoted from COMPLETE to RUNNING.")" "1"
 chk "cites Fibre.complete-needs-case"          "$(has "$out" "Proof: Fibre.complete-needs-case")" "1"
-chk "attempt charged, status as recorded"      "$(tr '\n' '/' < "$STATE")" "16/16/1/COMPLETE/"
+chk "attempt charged, COMPLETE demoted (Fibre.incident-refused)" "$(tr '\n' '/' < "$STATE")" "16/16/1/RUNNING/"
 
 echo "== controls: no blind spot, no witness =="
 incident
@@ -89,6 +91,7 @@ chk "RUNNING to a measured COMPLETE"           "$(has "$out" "WITNESS")" "0"
 printf '30\n0\n0\nRUNNING\n' > "$STATE"
 out="$($ENGINE update "$WORK/nowhere" 2>&1)"
 chk "refuse on a RUNNING record omits the COMPLETE note" "$(has "$out" "The recorded COMPLETE")" "0"
+chk "  ... and leaves RUNNING as it was"       "$(tr '\n' '/' < "$STATE")" "30/0/1/RUNNING/"
 
 printf '\n%s\n' "PASS=$pass FAIL=$fail"
 [ "$fail" -eq 0 ] || exit 1

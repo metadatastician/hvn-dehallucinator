@@ -7,7 +7,7 @@
 
 [horizontal]
 Status:: DESIGNED. This document is the only artefact. There is no implementation, no repository, and no proof of anything specific to Haruspex.
-Owning organisation:: undecided (`metadatastician` or `hyperpolymath`); see <<open-questions>>.
+Owning organisation:: metadatastician (owner decision, 2026-10-14).
 Tracks:: HDH-01 (#28), ledger row HD-H in `docs/status/PROOF-STATUS.adoc`.
 
 == What it is
@@ -171,19 +171,21 @@ COMPLETE", with the context the agent had: `state/state.txt` reading
   empty context", and the check names which assumptions.
 * echo-types' order-type fidelity is OPEN and is *not* relied on here.
 
+== Decisions (owner, 2026-10-14)
+
+. *Owning organisation: metadatastician.* Haruspex lives beside the engine it
+  extends. It consumes the hyperpolymath proof siblings (residual-evidence-types,
+  epistemic-types) by pin, as `Fibre.agda` does.
+. *Three outputs, kept.* HDH-01 said a prompt whose claim has an empty fibre
+  "gets the witness pair". In the types, the disagreeing pair witnesses
+  *non-identification* (`unresolved` / `unidentified`). Emptiness is witnessed
+  by a refutation (`refuted`) or by no case at all (`inconsistent`). The two
+  stay apart as `Epi(pair)` and `Empty(witness)`, and the output has three
+  cases, not two.
+
 [[open-questions]]
 == Open questions
 
-. *Owning organisation.* Haruspex depends on the hyperpolymath proof siblings
-  (residual-evidence-types, epistemic-types) and serves this repository's
-  engine under metadatastician. The owner decides.
-. *"Empty" and the witness pair.* HDH-01 says a prompt whose claim has an empty
-  fibre "gets the witness pair". In the types, the disagreeing pair witnesses
-  *non-identification* (`unresolved` / `unidentified`), and emptiness is
-  witnessed by a refutation (`refuted`) or by no case at all (`inconsistent`).
-  This design keeps them apart as `Epi(pair)` and `Empty(witness)`. If the
-  intended reading is that "empty" means "no single answer is identified", then
-  `Epi` and `Empty` merge and the output has two cases, not three.
 . *Where the schema comes from.* Haruspex checks a declared schema; it does not
   read free text, which would need a model. Who declares the schema for a prompt
   (the author, a tool, a template library) is outside this design.
