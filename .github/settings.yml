@@ -151,13 +151,19 @@ labels:
 # merely describe protection, it re-imposes the deadlock on every push.
 #
 # `contexts` is deliberately EMPTY rather than aspirational. Requiring a check
-# that cannot pass is the same defect as requiring one that cannot report, and
-# on this repo no check can currently run at all: GitHub Actions is billing-
-# blocked for PRIVATE repositories on this account ("The job was not started
-# because recent account payments have failed or your spending limit needs to be
-# increased"), which is why every workflow here fails with zero steps while the
-# estate's public repos run normally. Repopulate this list — one context at a
-# time, each pinned to a job id, each verified green — once Actions can run.
+# that cannot pass is the same defect as requiring one that cannot report.
+#
+# Until 2026-10-14 the value below contradicted this comment: it was
+# ["estate-audit"], imported with the template (cb48231, 2026-08-25), and no
+# workflow in this repository has ever emitted an `estate-audit` check — the
+# exact deadlock described above. It is now empty. (The billing block that once
+# stopped every workflow here no longer applies: the repository is public and
+# its workflows run.) Repopulate this list one context at a time, each pinned to
+# a job id that a workflow here emits, each verified green on a pull request.
+#
+# The estate ruling is that rulesets, not classic branch protection, govern
+# `main`; this block is classic protection. Moving `main` to a ruleset is an
+# owner decision and is not made here.
 branches:
   - name: "main"
     protection:
@@ -168,7 +174,7 @@ branches:
       required_conversation_resolution: true
       required_status_checks:
         strict: true
-        contexts: ["estate-audit"]
+        contexts: []
       enforce_admins: true
       required_signatures: true
       restrictions: null

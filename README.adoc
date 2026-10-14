@@ -12,9 +12,9 @@ image:https://img.shields.io/badge/Provenance-Quantum--Safe-blueviolet[Quantum-S
 
 // ── Standard & quality gates ────────────────────────────────────────────────
 image:https://img.shields.io/badge/RSR-Rhodium_Standard-9C27B0[Rhodium Standard Repository,link="https://github.com/hyperpolymath/rhodium-standard-repositories"]
-image:https://api.scorecard.dev/projects/github.com/hyperpolymath/hvn-dehallucinator/badge[OpenSSF Scorecard,link="https://scorecard.dev/viewer/?uri=github.com/hyperpolymath/hvn-dehallucinator"]
-image:https://sonarcloud.io/api/project_badges/measure?project=hyperpolymath_hvn-dehallucinator&metric=alert_status[SonarQube Quality Gate,link="https://sonarcloud.io/summary/new_code?id=hyperpolymath_hvn-dehallucinator"]
-image:https://archive.softwareheritage.org/badge/origin/https://github.com/hyperpolymath/hvn-dehallucinator/[Archived in Software Heritage,link="https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/hyperpolymath/hvn-dehallucinator"]
+image:https://api.scorecard.dev/projects/github.com/metadatastician/hvn-dehallucinator/badge[OpenSSF Scorecard,link="https://scorecard.dev/viewer/?uri=github.com/metadatastician/hvn-dehallucinator"]
+image:https://sonarcloud.io/api/project_badges/measure?project=metadatastician_harvard-dehallucinator&metric=alert_status[SonarQube Quality Gate,link="https://sonarcloud.io/summary/new_code?id=metadatastician_harvard-dehallucinator"]
+image:https://archive.softwareheritage.org/badge/origin/https://github.com/metadatastician/hvn-dehallucinator/[Archived in Software Heritage,link="https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/metadatastician/hvn-dehallucinator"]
 
 // ── Provenance & ecosystem ──────────────────────────────────────────────────
 image:https://img.shields.io/badge/Idris-Inside-5E5086?logo=idris&logoColor=white[Idris Inside,link="https://github.com/hyperpolymath/proven"]
