@@ -4,11 +4,11 @@ authors:
 - family-names: "Jewell"
   given-names: "Jonathan D.A."
   orcid: "https://orcid.org/0000-0002-3078-6652"
-title: "Harvard Dehallucinator"
+title: "Harvard von Neumann Dehallucinator (hvn-dehallucinator)"
 version: 0.1.0
 date-released: "2026-08-25"
-url: "https://github.com/hyperpolymath/harvard-dehallucinator"
-repository-code: "https://github.com/hyperpolymath/harvard-dehallucinator"
+url: "https://github.com/metadatastician/hvn-dehallucinator"
+repository-code: "https://github.com/metadatastician/hvn-dehallucinator"
 license: MPL-2.0
 keywords:
   - "rsr"
