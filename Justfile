@@ -144,10 +144,12 @@ test *args:
     # Runs entirely on a scratch copy via $HARVARD_ROOT, so it never touches
     # this repo's own state/state.txt. Requires GHC (runghc) — it fails loudly
     # rather than skipping, because a check that cannot fail is not a check.
-    # Then the blind-spot witness and the 2026-08-23/24 Incident replay.
+    # Then the blind-spot witness and the 2026-08-23/24 Incident replay, and the
+    # hardening suite (root finding, total parsing, verifier failures, pruning).
     set -euo pipefail
     bash tests/guarantee_test.sh {{args}}
     bash tests/witness_test.sh
+    bash tests/hardening_test.sh
 
 test-verbose:
     @echo "Running tests (verbose)..."
