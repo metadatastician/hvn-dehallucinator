@@ -18,7 +18,7 @@
 set -eu
 
 name="${1:?usage: derive-clade-uuid.sh <forge-path> [domain]}"
-domain="${2:-gv-clade-index}"
+domain="${2-gv-clade-index}"
 case "$domain" in
   *:*) echo "derive-clade-uuid: domain must not contain ':' (ADR-008 profile C)" >&2; exit 2 ;;
   '')  echo "derive-clade-uuid: empty domain" >&2; exit 2 ;;
