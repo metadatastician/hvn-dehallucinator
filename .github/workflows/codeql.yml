@@ -1,6 +1,26 @@
 # This workflow is managed by gh actions-lock.
 # SPDX-License-Identifier: MPL-2.0
-# This workflow is managed by gh actions-lock.
+#
+# CodeQL, in three parts, so the job's colour means what CodeQL found:
+#
+#   analyze  CodeQL's `actions` extractor over every workflow file
+#            (build-mode none). On a pull request the CodeQL action limits
+#            results to the lines the PR changes.
+#   verdict  scripts/codeql-gate.sh reads the SARIF and fails the job on any
+#            error- or warning-level result, annotated at its file and line.
+#            The gate first proves it can fail (tests/workflows/codeql_gate_test.sh).
+#   upload   to code scanning only when the repository variable CODEQL_UPLOAD
+#            is 'true'.
+#
+# Why upload is opt-in: while CodeQL *default setup* is enabled, GitHub refuses
+# SARIF from an advanced workflow ("CodeQL analyses from advanced
+# configurations cannot be processed when the default setup is enabled"), and
+# that refusal used to turn this job red on every push and PR although the
+# analysis itself succeeded. Default setup already uploads `actions` results to
+# the Security tab, so by default this workflow does not upload, and says so in
+# the run. To make this workflow the uploader instead: Settings -> Code security
+# -> CodeQL analysis -> disable default setup, then set the variable
+# CODEQL_UPLOAD=true (Settings -> Secrets and variables -> Actions -> Variables).
 name: CodeQL Security Analysis
 on:
   push:
@@ -20,7 +40,10 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      security-events: write
+      security-events: write   # used only when CODEQL_UPLOAD is 'true'
+    env:
+      CODEQL_UPLOAD: ${{ vars.CODEQL_UPLOAD }}
+      LANGUAGE: ${{ matrix.language }}
     strategy:
       fail-fast: false
       matrix:
@@ -37,6 +60,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Gate refuses its negative controls
+        run: bash tests/workflows/codeql_gate_test.sh
       - name: Initialize CodeQL
         uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.0 (4.38.1 blocked estate-wide; nexia-list#100)
         with:
@@ -46,3 +71,19 @@ jobs:
         uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.0 (4.38.1 blocked estate-wide; nexia-list#100)
         with:
           category: "/language:${{ matrix.language }}"
+          output: ${{ runner.temp }}/codeql-sarif
+          upload: ${{ vars.CODEQL_UPLOAD == 'true' && 'always' || 'never' }}
+          upload-database: ${{ vars.CODEQL_UPLOAD == 'true' }}
+      - name: Verdict (fails on error- or warning-level results)
+        run: bash scripts/codeql-gate.sh "$RUNNER_TEMP"/codeql-sarif/*.sarif
+      - name: Where the results went
+        if: always()
+        run: |
+          if [ "$CODEQL_UPLOAD" = "true" ]; then
+            msg="SARIF uploaded to code scanning (category /language:$LANGUAGE)."
+            echo "$msg"
+          else
+            msg="SARIF not uploaded: CODEQL_UPLOAD is not 'true', so CodeQL default setup owns the Security tab. The verdict step above is this job's result."
+            echo "::notice title=CodeQL upload skipped::$msg"
+          fi
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
