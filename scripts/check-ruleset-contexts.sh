@@ -36,6 +36,8 @@ emitted() {
   for f in "$WORKFLOWS"/*.yml "$WORKFLOWS"/*.yaml; do
     [ -f "$f" ] || continue
     awk '
+      # Print the current job as a tagged check-run name unless its id is empty
+      # or it has a strategy; prefer its explicit name over its id.
       function flush() {
         if (id != "" && !matrix) print (reusable ? "caller" : "exact") "\t" (name != "" ? name : id)
       }
@@ -59,7 +61,9 @@ jobs="$(emitted)"
 exact="$(awk -F"\t" '$1 == "exact" { print $2 }' <<<"$jobs")"
 callers="$(awk -F"\t" '$1 == "caller" { print $2 }' <<<"$jobs")"
 
-# reported <context>: does some job here report a check-run with this name?
+# reported <context>: return 0 for an exact name in $exact or a caller in
+# $callers followed by " / " and a nonempty suffix; return 1 otherwise.
+# The called job named by the suffix is not verified.
 reported() {
   local ctx="$1" c
   grep -qxF -- "$ctx" <<<"$exact" && return 0
