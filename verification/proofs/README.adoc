@@ -21,11 +21,14 @@ proofs/
 │   └── ApiTypes.lean
 ├── agda/            # Agda proofs (induction, metatheory)
 │   └── Properties.agda
-├── coq/             # Coq proofs (type systems, compilation)
-│   └── TypeSafety.v
-└── tlaplus/         # TLA+ specs (distributed protocols)
-    └── StateMachine.tla
+└── coq/             # Coq proofs (type systems, compilation)
+    └── TypeSafety.v
 ----
+
+The template's `tlaplus/StateMachine.tla` was removed on 2026-10-14: it modelled
+the template's example request pipeline, not this engine, and no TLC gate ran it.
+See `docs/status/PROOF-STATUS.adoc` for what each file here does and does not
+establish.
 
 == Verification Commands
 

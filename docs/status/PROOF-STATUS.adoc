@@ -1,101 +1,117 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-// Template: rsr-template-repo/docs/status/PROOF-STATUS.adoc
-// Tracks proof completion. Requirements defined in PROOF-NEEDS.adoc
-= Proof Status — HARVARD_DEHALLUCINATOR
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
+= Proof status — hvn-dehallucinator
+:revdate: 2026-10-14
+:toc: preamble
 
-== Summary
+Each row names the artefact that discharges it. Statuses are PROVEN (a checked
+proof), TESTED (an executable check that can fail), ASSUMED, DESIGNED (a
+written design, nothing executable) and OPEN (nothing yet). A status moves only
+with a named module, lemma, fixture or log line. `scripts/check-proof-status.sh`
+refuses this file if a row that is not OPEN names a path or a fragment that is
+not in the tree.
 
-[cols="2,1,1,1,1,1", options="header"]
+== Where things stand
+
+The engine's guarantee is *tested, not proved*. Four properties are each
+checked by an executable suite that can fail: COMPLETE is written only from a
+measured zero, a caller cannot assert progress, COMPLETE regresses, and the
+attempt budget trips. That suite passes locally (receipt below), but no workflow
+runs it yet. Nothing about the engine is mechanised on `main`. The engine proofs
+recorded as done on 2026-08-27 are not in anything pushed (see below). HDH-01
+(#28) adds the first kernel proof (`Fibre.agda`), the witness block, and the
+Haruspex design. The proof files inherited from the template are not claims
+about this project; HDH-02 (#29) tracks them.
+
+== Ledger
+
+[#ledger,cols="1,4,1,5",options="header"]
 |===
-| Category | Total | Done | In Progress | Blocked | Remaining
-
-| ABI/FFI (ABI) | 5 | 0 | 0 | 0 | 5
-| Typing (TP) | 2 | 0 | 0 | 0 | 2
-| Invariant (INV) | 0 | 0 | 0 | 0 | 0
-| Security (SEC) | 0 | 0 | 0 | 0 | 0
-| Concurrency (CONC) | 0 | 0 | 0 | 0 | 0
-| Algorithm (ALG) | 0 | 0 | 0 | 0 | 0
-| Domain (DOM) | 0 | 0 | 0 | 0 | 0
-| *Total* | *7* | *0* | *0* | *0* | *7*
-|===
-
-*Overall*: 0% proven
-
-== Proofs Done
-
-// Format:
-// | ID | Proof | Prover | File | Date | Verified By |
-// | ABI-1 | Non-null pointer proofs | Idris2 | verification/proofs/idris2/ABI/Pointers.idr | 2026-XX-XX | idris2 --check |
-
-[cols="1,3,1,3,1,2", options="header"]
-|===
-| ID | Proof | Prover | File | Date | Verified By
-
-| — | No proofs completed yet | — | — | — | —
-|===
-
-== Proofs In Progress
-
-[cols="1,3,1,2,1,2", options="header"]
-|===
-| ID | Proof | Prover | Assignee | Started | Blocker
-
-| — | — | — | — | — | —
-|===
-
-== Proofs Blocked
-
-[cols="1,3,2,3", options="header"]
-|===
-| ID | Proof | Blocked By | Notes
-
-| — | — | — | —
+| ID | Claim | Status | Artefact
+| HD-G1 | `COMPLETE` is written only from a measured zero; a non-zero measurement cannot write it | TESTED | `tests/guarantee_test.sh#COMPLETE only via a MEASURED zero`, `tests/guarantee_test.sh#non-zero target cannot write COMPLETE`, implemented by `engine/Engine.hs#updateFromVerifier`
+| HD-G2 | A caller cannot assert progress: `update 0` is read as a directory and refused (exit 4), status unchanged | TESTED | `tests/guarantee_test.sh#caller cannot assert a number (exit 4)`, `tests/guarantee_test.sh#status unchanged by the attempt`
+| HD-G3 | `COMPLETE` regresses when a later measurement is non-zero | TESTED | `tests/guarantee_test.sh#regresses out of COMPLETE`
+| HD-G4 | Every update costs an attempt; past total+5 the breaker writes `EMERGENCY_STOP`, which is terminal | TESTED | `tests/guarantee_test.sh#update charges an attempt`, `tests/guarantee_test.sh#trips past total+5 (exit 3)`, `tests/guarantee_test.sh#stopped state is terminal (exit 1)`, implemented by `engine/Engine.hs#bumpOrTrip`
+| HD-G5 | State parsing is total (a malformed field is named, not a crash) and the engine is cwd-independent | TESTED | `tests/guarantee_test.sh#malformed state exits 1, no crash`, `tests/guarantee_test.sh#cwd-independent`
+| HD-CI | The guarantee suite runs in CI | OPEN | no workflow under `.github/workflows/` invokes `tests/guarantee_test.sh`; the receipt below is a local run
+| HD-1 | The guarantee, regressability and budget trip mechanised (`EngineCore.lean`, 19 theorems; TLA+ gate `check-tla.sh`; 43/43 gate tests, which HDH-01 gives as 19 guarantee + 24 hardening) | OPEN | absent from everything pushed; see <<engine-proofs-2026-08-27>>
+| HD-2 | This file reflects the tree | TESTED | `scripts/check-proof-status.sh`, with negative controls in `tests/proofs/check_proof_status_test.sh`
+| HD-W | Regress and refuse paths print the blind-spot witness (two readings of the record that disagree on `COMPLETE`) | OPEN | HDH-01: planned in `engine/Engine.hs`, with the 2026-08-23/24 Incident replay as its test
+| HD-F | `COMPLETE` needs an inhabited measured case; an asserted and a measured count that differ refute identification | OPEN | HDH-01: planned `verification/proofs/agda/Fibre.agda` and `tests/reject/AssertedComplete.agda`, consuming residual-evidence-types by pin
+| HD-H | Haruspex: the same check before any tokens are spent | OPEN | HDH-01: planned design document; no repository yet
+| ABI-1..5, TP-1 | Idris2 ABI and core-type proofs | OPEN | template files under `verification/proofs/idris2/`; verdicts in its MANIFEST were taken in the template repo; HDH-02 (#29)
+| TP-2 | Public API type safety (Lean) | OPEN | template `verification/proofs/lean4/ApiTypes.lean`, quarantined, has never compiled; HDH-02 (#29)
 |===
 
-== Proofs Remaining
+== Files inherited from the template
 
-[cols="1,3,1,1,1,1", options="header"]
+These were imported verbatim from `rsr-template-repo` on 2026-08-25 (`cb48231`).
+They make no claim about this project. No workflow here checks them, and their
+MANIFEST verdicts are dated 2026-07-17, before this repository existed.
+
+[cols="2,3",options="header"]
 |===
-| ID | Proof | Category | Prover | Priority | Est. Effort
-
-| ABI-1 | Non-null pointer proofs | ABI | Idris2 | P1 | 2h
-| ABI-2 | Memory layout correctness | ABI | Idris2 | P1 | 4h
-| ABI-3 | Platform type size proofs | ABI | Idris2 | P1 | 2h
-| ABI-4 | FFI function return type proofs | ABI | Idris2 | P1 | 2h
-| ABI-5 | C ABI compliance | ABI | Idris2 | P1 | 4h
-| TP-1 | Core data type well-formedness | TP | Idris2 | P1 | 4h
-| TP-2 | Public API type safety | TP | Lean4 | P2 | 4h
+| File | What it is
+| `verification/proofs/agda/Properties.agda` | List-append length and `suc` monotonicity examples; imports agda-stdlib, so it cannot be checked under the kernel flags (`--no-libraries`). HDH-01 replaces it with `Fibre.agda`.
+| `verification/proofs/coq/TypeSafety.v` | Template example; tracked in HDH-02 (#29).
+| `verification/proofs/idris2/`, `verification/proofs/lean4/` | The ABI-1..5 / TP-1 / TP-2 rows above; HDH-02 (#29).
 |===
 
-== Verification Commands
+`verification/proofs/tlaplus/StateMachine.tla` was removed on 2026-10-14. It
+specified the template's example request pipeline
+(`idle → scanning → routing → dispatching`), not this engine, and no TLC gate
+ever ran it. A TLA+ model of the engine belongs to HD-1.
+
+[[engine-proofs-2026-08-27]]
+== Engine proofs of 2026-08-27: absent
+
+The 2026-08-27 work (`EngineCore.lean` with 19 theorems, `check-tla.sh`, 43/43
+gate tests) was searched for on 2026-10-14 and is not in anything pushed:
+
+* branches of `metadatastician/hvn-dehallucinator`: `main` only, plus the HDH-01 branches;
+* every pull-request head, `refs/pull/1/head` to `refs/pull/27/head`: no
+  `EngineCore.lean`, no `check-tla.sh`, no `.lean` file other than the template
+  `ApiTypes.lean`, no `.tla` file other than the template `StateMachine.tla`,
+  no `.handoff/`;
+* the history of every one of those refs (`git log --all`): no commit has ever
+  touched `*EngineCore*`, `*check-tla*` or `.handoff/`;
+* `hyperpolymath/harvard-dehallucinator` is GitHub's redirect to this repository
+  (identical refs), not a separate copy.
+
+The author's local clone was not reachable from the session that wrote this.
+Unless the work turns up there, HD-1 has to be re-derived, which is a separate
+session. Whether the 19 guarantee tests counted in that 43 are the 19 in
+`tests/guarantee_test.sh` cannot be told from the tree; the 24 hardening tests
+are not in it.
+
+== Receipts
+
+HD-G1..HD-G5, local run, 2026-10-14, at `9ee6edb`, GHC 9.4.7 (`runghc`):
+
+[source,text]
+----
+$ bash tests/guarantee_test.sh
+...
+PASS=19 FAIL=0
+----
+
+HD-2: `bash scripts/check-proof-status.sh` and
+`bash tests/proofs/check_proof_status_test.sh`; both run in
+`.github/workflows/estate-rules.yml`.
+
+== Verification commands
 
 [source,bash]
 ----
-# Check all Idris2 proofs
-just proof-check-idris2
-
-# Check all Lean4 proofs
-just proof-check-lean4
-
-# Check all Agda proofs
-just proof-check-agda
-
-# Check all Coq proofs
-just proof-check-coq
-
-# Run all proof checks
-just proof-check-all
-
-# Scan for dangerous patterns
-panic-attack assail --proofs-only
+just test                                   # the guarantee suite (needs runghc)
+bash scripts/check-proof-status.sh          # this ledger against the tree
+bash tests/proofs/check_proof_status_test.sh  # the ledger checker's negative controls
 ----
 
 == Changelog
 
-[cols="1,3,1", options="header"]
+[cols="1,4",options="header"]
 |===
-| Date | Change | By
-
-| 2026-04-04 | Initial proof status tracking | Template
+| Date | Change
+| 2026-10-14 | Template replaced by the ledger; engine-proofs search recorded; template `StateMachine.tla` removed; HD-2 checker added (HDH-01).
 |===
