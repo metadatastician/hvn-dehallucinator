@@ -19,8 +19,8 @@ proofs/
 │   └── Types.idr    # Core data type well-formedness
 ├── lean4/           # Lean4 proofs (algebra, lattices)
 │   └── ApiTypes.lean
-├── agda/            # Agda proofs (induction, metatheory)
-│   └── Properties.agda
+├── agda/            # Agda kernel proofs (--safe --without-K --no-libraries)
+│   └── Fibre.agda   # COMPLETE needs a measured case (residual-evidence-types by pin)
 └── coq/             # Coq proofs (type systems, compilation)
     └── TypeSafety.v
 ----
