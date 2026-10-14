@@ -16,16 +16,20 @@ not in the tree.
 The engine's guarantee is *tested, not proved*. Four properties are each
 checked by an executable suite that can fail: COMPLETE is written only from a
 measured zero, a caller cannot assert progress, COMPLETE regresses, and the
-attempt budget trips. That suite passes locally (receipt below), but no workflow
-runs it yet. What *is* proved is the epistemic core of the guarantee,
-in the Agda kernel, against a model of the engine's update
-(`verification/proofs/agda/Fibre.agda`, HD-F). The model shows that the recorded
-state alone does not identify what remains, and that COMPLETE needs an inhabited
-measured case. That model is not yet tied to `Engine.hs` by any proof. The
-engine proofs recorded as done on 2026-08-27 are not in anything pushed (see
-below). HDH-01 (#28) still adds the witness block and the Haruspex design. The
-proof files inherited from the template are not claims about this project;
-HDH-02 (#29) tracks them.
+attempt budget trips. That suite, and the witness suite below, run on every
+pull request (Engine Guarantee workflow). When the engine regresses or refuses,
+it now prints the blind-spot witness: the reading as recorded and the reading as
+measured, and the claim they disagree on (HD-W). The 2026-08-23/24 Incident,
+replayed at its literal numbers, is that block's test. What *is* proved is
+the epistemic core of the guarantee, in the Agda kernel, against a model of the
+engine's update (`verification/proofs/agda/Fibre.agda`, HD-F). The model shows
+that the recorded state alone does not identify what remains, and that COMPLETE
+needs an inhabited measured case. That model is not yet tied to `Engine.hs` by
+any proof. The engine proofs recorded as done on 2026-08-27 are not in anything
+pushed (see below). Haruspex, the same check run before a prompt is sent, is
+designed but not built (`docs/proposals/HARUSPEX.adoc`); which organisation owns
+it is undecided. The proof files inherited from the template are not claims
+about this project; HDH-02 (#29) tracks them.
 
 == Ledger
 
@@ -37,15 +41,17 @@ HDH-02 (#29) tracks them.
 | HD-G3 | `COMPLETE` regresses when a later measurement is non-zero | TESTED | `tests/guarantee_test.sh#regresses out of COMPLETE`
 | HD-G4 | Every update costs an attempt; past total+5 the breaker writes `EMERGENCY_STOP`, which is terminal | TESTED | `tests/guarantee_test.sh#update charges an attempt`, `tests/guarantee_test.sh#trips past total+5 (exit 3)`, `tests/guarantee_test.sh#stopped state is terminal (exit 1)`, implemented by `engine/Engine.hs#bumpOrTrip`
 | HD-G5 | State parsing is total (a malformed field is named, not a crash) and the engine is cwd-independent | TESTED | `tests/guarantee_test.sh#malformed state exits 1, no crash`, `tests/guarantee_test.sh#cwd-independent`
-| HD-CI | The guarantee suite runs in CI | OPEN | no workflow under `.github/workflows/` invokes `tests/guarantee_test.sh`; the receipt below is a local run
+| HD-CI | The guarantee and witness suites run in CI on every pull request and push to `main` | TESTED | `.github/workflows/engine-guarantee.yml#bash tests/guarantee_test.sh`, `.github/workflows/engine-guarantee.yml#bash tests/witness_test.sh`
 | HD-1 | The guarantee, regressability and budget trip mechanised (`EngineCore.lean`, 19 theorems; TLA+ gate `check-tla.sh`; 43/43 gate tests, which HDH-01 gives as 19 guarantee + 24 hardening) | OPEN | absent from everything pushed; see <<engine-proofs-2026-08-27>>
 | HD-2 | This file reflects the tree | TESTED | `scripts/check-proof-status.sh`, with negative controls in `tests/proofs/check_proof_status_test.sh`
-| HD-W | Regress and refuse paths print the blind-spot witness (two readings of the record that disagree on `COMPLETE`) | OPEN | HDH-01: planned in `engine/Engine.hs`, with the 2026-08-23/24 Incident replay as its test
+| HD-W | Regress prints the blind-spot witness (recorded remaining 0 and measured remaining, disagreeing on `COMPLETE`); refuse prints the no-case block; neither touches the state file | TESTED | `engine/Engine.hs#regressWitness`, `engine/Engine.hs#refuseWitness`; the Incident replayed at 16/16/0/`COMPLETE` against 15,272 files: `tests/witness_test.sh#measured reading: remaining 15272`, `tests/witness_test.sh#state becomes 16/0/1/RUNNING (Fibre.incident-regresses)`, controls `tests/witness_test.sh#record and measurement agree on COMPLETE`
+| HD-W-R | A failed re-measurement leaves a recorded `COMPLETE` in place; the refuse block now says no measurement confirms it | TESTED | `tests/witness_test.sh#says the recorded COMPLETE is unconfirmed`, `tests/witness_test.sh#attempt charged, status as recorded`; whether it should instead demote to `RUNNING` is an owner decision (it would change documented behaviour)
 | HD-F | In a model of the engine's update: `COMPLETE` needs an inhabited measured case whose every candidate has nothing remaining; an asserted and a measured count that differ are two readings of one record that refute identification; "done" against a non-zero measurement has no case | PROVEN | `verification/proofs/agda/Fibre.agda#complete-needs-case`, `verification/proofs/agda/Fibre.agda#asserted-not-identified`, `verification/proofs/agda/Fibre.agda#hallucinated-complete-has-no-case`, `verification/proofs/agda/Fibre.agda#incident-not-complete`; checked by `scripts/check-agda-kernel.sh` in `.github/workflows/proof-kernel.yml`
 | HD-F-R | The Incident as a refused derivation: `COMPLETE` from the record 16/16/0/`COMPLETE` alone does not typecheck | PROVEN | `tests/reject/AssertedComplete.agda`, refused at its declaration; the gate's own negative controls in `tests/proofs/agda_kernel_gate_test.sh`
 | HD-F-E | `Fibre.agda`'s `update` agrees with `updateFromVerifier` in `Engine.hs` | ASSUMED | by inspection only: `verification/proofs/agda/Fibre.agda#update s m = task`, `engine/Engine.hs#done = max 0 (totalItems st1 - remaining)`; no extraction or differential test ties them
 | RE | Consumed from residual-evidence-types by pin, re-checked here under `--double-check`: `Core.Candidate`, `Case`, `Holds`, `Identified`; `Revision.disagreeing-not-identified` (via `Core.different-candidates-refute-identification`), `Revision.refuted-not-holds` | PROVEN | `scripts/fetch-siblings.sh#97244f5cb63bd6697caff261b187b62e9788b692`, re-checked here at that pin by `scripts/check-agda-kernel.sh` (the sibling's own hosted receipt, run 36740394802, is for its earlier commit `befdf96`)
-| HD-H | Haruspex: the same check before any tokens are spent | OPEN | HDH-01: planned design document; no repository yet
+| HD-H | Haruspex: the same check before any tokens are spent, as the finite-checker pattern; outputs `Sound` / `Epi(pair)` / `Empty(witness)`; no model call | DESIGNED | `docs/proposals/HARUSPEX.adoc#Status:: DESIGNED`, verdict-to-lemma map `docs/proposals/HARUSPEX.adoc#unresolved-sound`; no implementation, no repository
+| HD-H-O | Haruspex's owning organisation (`metadatastician` or `hyperpolymath`) | OPEN | owner decision; `docs/proposals/HARUSPEX.adoc` open question 1
 | ABI-1..5, TP-1 | Idris2 ABI and core-type proofs | OPEN | template files under `verification/proofs/idris2/`; verdicts in its MANIFEST were taken in the template repo; HDH-02 (#29)
 | TP-2 | Public API type safety (Lean) | OPEN | template `verification/proofs/lean4/ApiTypes.lean`, quarantined, has never compiled; HDH-02 (#29)
 |===
@@ -110,7 +116,32 @@ HD-2: `bash scripts/check-proof-status.sh` and
 `bash tests/proofs/check_proof_status_test.sh`; both run in
 `.github/workflows/estate-rules.yml`.
 
-HD-F, HD-F-R, RE: local run, 2026-10-14, Agda 2.6.3; the same gate runs in
+HD-W: the Incident replayed by hand, 2026-10-14, GHC 9.4.7. The record is
+`16/16/0/COMPLETE` and the target holds 15,272 `.res` files;
+`tests/witness_test.sh` (21 checks) asserts each line:
+
+[source,text]
+----
+$ Engine update estate
+Verified estate
+  remaining (measured): 15272
+  progress: 0/16
+  status:   RUNNING
+WITNESS regress: the recorded state does not identify COMPLETE
+  claim:    COMPLETE (remaining 0)
+  recorded: remaining 0  (state 16/16, attempts 0, status COMPLETE)
+  measured: remaining 15272  (engine/verify_register.sh estate)
+  Both readings fit the recorded state and disagree on the claim;
+  the measured one is written. Re-check: Engine verify estate
+  Proof: Fibre.asserted-not-identified, Fibre.regress-refutes
+         (verification/proofs/agda/Fibre.agda)
+----
+
+The state the engine writes, `16/0/1/RUNNING`, is the one
+`Fibre.incident-regresses` computes for the model.
+
+HD-F, HD-F-R, RE: local run, 2026-10-14, Agda 2.6.3. The same gate passed in
+Proof Kernel runs 38494954347 and 38495194429 (pull request #31) and runs in
 `.github/workflows/proof-kernel.yml`:
 
 [source,text]
@@ -139,7 +170,7 @@ that the expression refl has type Complete world`.
 
 [source,bash]
 ----
-just test                                   # the guarantee suite (needs runghc)
+just test                                   # guarantee + witness suites (needs runghc)
 bash scripts/check-proof-status.sh          # this ledger against the tree
 bash tests/proofs/check_proof_status_test.sh  # the ledger checker's negative controls
 bash scripts/check-agda-kernel.sh           # Agda kernel: pinned siblings, MANIFEST, tests/reject
@@ -153,4 +184,6 @@ bash tests/proofs/agda_kernel_gate_test.sh  # the kernel gate's negative control
 | Date | Change
 | 2026-10-14 | Template replaced by the ledger; engine-proofs search recorded; template `StateMachine.tla` removed; HD-2 checker added (HDH-01).
 | 2026-10-14 | HD-F, HD-F-R, RE: OPEN → PROVEN with `Fibre.agda`, `tests/reject/AssertedComplete.agda` and the Proof Kernel gate; HD-F-E recorded as ASSUMED; template `Properties.agda` replaced (HDH-01).
+| 2026-10-14 | HD-W: OPEN → TESTED with the witness block and the Incident replay; HD-W-R recorded; HD-CI: OPEN → TESTED with the Engine Guarantee workflow (HDH-01).
+| 2026-10-14 | HD-H: OPEN → DESIGNED with `docs/proposals/HARUSPEX.adoc`; HD-H-O (owning organisation) recorded OPEN (HDH-01).
 |===

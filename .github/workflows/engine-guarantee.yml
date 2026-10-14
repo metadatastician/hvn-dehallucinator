@@ -1,0 +1,39 @@
+# This workflow is managed by gh actions-lock.
+# SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
+#
+# Engine Guarantee — the engine's executable checks, on every pull request:
+#   * tests/guarantee_test.sh: COMPLETE only from a measured zero, no
+#     caller-asserted progress, regression out of COMPLETE, the attempt budget;
+#   * tests/witness_test.sh: the blind-spot witness on regress and refuse, and
+#     the 2026-08-23/24 Incident replayed at its literal numbers.
+# GHC comes from the Ubuntu 24.04 archive (9.4.7), the version the receipts in
+# docs/status/PROOF-STATUS.adoc were taken with; the engine needs only boot
+# packages.
+
+name: Engine Guarantee
+on:
+  push:
+    branches: [main]
+  pull_request:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  guarantee:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+      - name: Install GHC (Ubuntu 24.04 archive)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends ghc
+          ghc --version
+      - name: Guarantee suite
+        run: bash tests/guarantee_test.sh
+      - name: Witness and Incident replay
+        run: bash tests/witness_test.sh

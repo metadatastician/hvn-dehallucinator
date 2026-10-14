@@ -147,6 +147,17 @@ implementation did not do — see <<The Incident (2026-08-23/24)>> below.
   regresses. Completion is a measurement, not an achievement.
 * Every `update` costs an attempt, so a looping agent trips the circuit breaker.
 
+When the engine regresses or refuses, it cites the evidence instead of a bare
+verdict. If the state file says `COMPLETE` and the verifier counts more than
+zero, `update` prints a `WITNESS regress` block with two readings of the
+recorded state, *as recorded* (remaining 0) and *as measured*. Both fit the
+record and they disagree on `COMPLETE`, so the record alone never decided it.
+If no count can be taken, a `WITNESS refuse` block says there is no measured
+case to derive `COMPLETE` from. Both go to the command's output, never to the
+state file. The underlying fact is proved in the Agda kernel against a model of
+the update (`verification/proofs/agda/Fibre.agda`). Its status, and what is not
+yet proved, is in `docs/status/PROOF-STATUS.adoc`.
+
 === Usage
 
 [source,text]

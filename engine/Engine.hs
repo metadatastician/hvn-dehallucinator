@@ -11,6 +11,7 @@
 module Main where
 
 import Control.Exception (SomeException, try)
+import Control.Monad (when)
 import Data.Char (isSpace)
 import System.Directory
     (doesDirectoryExist, doesFileExist, getCurrentDirectory, renameFile)
@@ -136,6 +137,47 @@ runVerifier root target = do
             Right (code, _, err) ->
                 Left ("verifier exited " ++ show code ++ ": " ++ trim err)
 
+-- ------------------------------------------------------------ witness ------
+-- When the engine regresses or refuses, it cites the blind-spot witness rather
+-- than a bare verdict. The recorded state alone does not identify what
+-- remains: a reading "as recorded" and a reading "as measured" both fit it and
+-- disagree on COMPLETE (verification/proofs/agda/Fibre.agda,
+-- asserted-not-identified). Both numbers are printed so the claim can be
+-- re-checked with `verify`. Witnesses go to this report only; the four-line
+-- state file is unchanged.
+
+describe :: State -> String
+describe st = "state " ++ show (completed st) ++ "/" ++ show (totalItems st)
+           ++ ", attempts " ++ show (attempts st) ++ ", status " ++ status st
+
+-- Regress: the record claims COMPLETE, the verifier counts more than zero.
+regressWitness :: FilePath -> State -> Int -> [String]
+regressWitness target recorded measured =
+    [ "WITNESS regress: the recorded state does not identify COMPLETE"
+    , "  claim:    COMPLETE (remaining 0)"
+    , "  recorded: remaining 0  (" ++ describe recorded ++ ")"
+    , "  measured: remaining " ++ show measured ++ "  (engine/verify_register.sh " ++ target ++ ")"
+    , "  Both readings fit the recorded state and disagree on the claim;"
+    , "  the measured one is written. Re-check: Engine verify " ++ target
+    , "  Proof: Fibre.asserted-not-identified, Fibre.regress-refutes"
+    , "         (verification/proofs/agda/Fibre.agda)"
+    ]
+
+-- Refuse: no measurement could be taken, so there is no case to derive from.
+refuseWitness :: State -> String -> [String]
+refuseWitness recorded why =
+    [ "WITNESS refuse: no measured case, so COMPLETE cannot be derived"
+    , "  claim:    COMPLETE (remaining 0)"
+    , "  recorded: " ++ describe recorded
+    , "  measured: none (" ++ why ++ ")"
+    , "  COMPLETE is derived only from an inhabited measured case."
+    ] ++
+    [ "  The recorded COMPLETE is left unchanged but no measurement confirms it."
+    | status recorded == statusComplete ] ++
+    [ "  A count comes only from measuring a directory: Engine update <targetdir>"
+    , "  Proof: Fibre.complete-needs-case (verification/proofs/agda/Fibre.agda)"
+    ]
+
 -- ----------------------------------------------------------- commands ------
 
 die :: String -> IO a
@@ -195,6 +237,7 @@ updateFromVerifier root target = withState root $ \st0 -> do
             writeState root st1          -- attempt still counted
             hPutStrLn stderr ("VERIFICATION FAILED: " ++ e)
             hPutStrLn stderr "status unchanged. COMPLETE is unreachable without a count."
+            mapM_ (hPutStrLn stderr) (refuseWitness st0 e)
             exitWith (ExitFailure 4)
         Right remaining -> do
             let done = max 0 (totalItems st1 - remaining)
@@ -205,6 +248,8 @@ updateFromVerifier root target = withState root $ \st0 -> do
             putStrLn $ "  remaining (measured): " ++ show remaining
             putStrLn $ "  progress: " ++ show done ++ "/" ++ show (totalItems st2)
             putStrLn $ "  status:   " ++ status st2
+            when (status st0 == statusComplete && remaining > 0) $
+                mapM_ putStrLn (regressWitness target st0 remaining)
 
 verifyOnly :: FilePath -> FilePath -> IO ()
 verifyOnly root target = runVerifier root target >>= either die (putStrLn . show)
