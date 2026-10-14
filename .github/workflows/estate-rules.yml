@@ -5,6 +5,7 @@
 #
 # Estate Rules — enforces hyperpolymath estate-wide conventions:
 #   * root shape (allowlist of permitted root entries)
+#   * every check a ruleset requires is emitted by a workflow job
 #   * AsciiDoc-by-default (no .md files under docs/)
 #   * V-lang is banned (no V-lang scaffolding or references; Zig is the FFI default)
 #   * PROOF-STATUS ledger rows name artefacts that exist in the tree
@@ -31,6 +32,10 @@ jobs:
         uses: actions/checkout@v7.0.1
       - name: Root shape allowlist
         run: bash scripts/check-root-shape.sh .
+      - name: Rulesets require only checks a workflow emits
+        run: bash scripts/check-ruleset-contexts.sh
+      - name: Ruleset-context checker refuses its negative controls
+        run: bash tests/workflows/check_ruleset_contexts_test.sh
       - name: AsciiDoc by default (no .md under docs/)
         run: bash scripts/check-no-md-in-docs.sh .
       - name: No V-language references
