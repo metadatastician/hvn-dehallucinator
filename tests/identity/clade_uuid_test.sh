@@ -16,6 +16,10 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 pass=0; fail=0
+# chk <name> <got> <want> - compare <got> against <want> for the test labelled
+# <name>; prints a PASS line, or a FAIL line with both values, and increments
+# the $pass or $fail counter accordingly. No output is returned; results
+# accumulate in $pass/$fail for the summary line at the end of the script.
 chk() { # chk <name> <got> <want>
   if [ "$2" = "$3" ]; then printf '  PASS  %s\n' "$1"; pass=$((pass+1))
   else printf '  FAIL  %s\n        want=[%s]\n        got =[%s]\n' "$1" "$3" "$2"; fail=$((fail+1)); fi
@@ -23,6 +27,10 @@ chk() { # chk <name> <got> <want>
 
 # uuid and forge path recorded in a CLADE file.
 field() { sed -n "s/^$2 *= *\"\\([^\"]*\\)\".*/\\1/p" "$1" | head -1; }
+# drift <clade-file> -> "ok" or a description of the mismatch - reads the
+# uuid and github fields from <clade-file>, re-derives the uuid from the
+# recorded forge path via $DERIVE, and echoes "ok" if they agree or else a
+# message naming the recorded and derived uuids and the path used.
 drift() { # drift <clade-file> -> "ok" or a description of the mismatch
   local u g d
   u="$(field "$1" uuid)"; g="$(field "$1" github)"
