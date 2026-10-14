@@ -26,9 +26,10 @@ engine's update (`verification/proofs/agda/Fibre.agda`, HD-F). The model shows
 that the recorded state alone does not identify what remains, and that COMPLETE
 needs an inhabited measured case. That model is not yet tied to `Engine.hs` by
 any proof. The engine proofs recorded as done on 2026-08-27 are not in anything
-pushed (see below). HDH-01 (#28) still adds the Haruspex design. The proof files
-inherited from the template are not claims about this project; HDH-02 (#29)
-tracks them.
+pushed (see below). Haruspex, the same check run before a prompt is sent, is
+designed but not built (`docs/proposals/HARUSPEX.adoc`); which organisation owns
+it is undecided. The proof files inherited from the template are not claims
+about this project; HDH-02 (#29) tracks them.
 
 == Ledger
 
@@ -49,7 +50,8 @@ tracks them.
 | HD-F-R | The Incident as a refused derivation: `COMPLETE` from the record 16/16/0/`COMPLETE` alone does not typecheck | PROVEN | `tests/reject/AssertedComplete.agda`, refused at its declaration; the gate's own negative controls in `tests/proofs/agda_kernel_gate_test.sh`
 | HD-F-E | `Fibre.agda`'s `update` agrees with `updateFromVerifier` in `Engine.hs` | ASSUMED | by inspection only: `verification/proofs/agda/Fibre.agda#update s m = task`, `engine/Engine.hs#done = max 0 (totalItems st1 - remaining)`; no extraction or differential test ties them
 | RE | Consumed from residual-evidence-types by pin, re-checked here under `--double-check`: `Core.Candidate`, `Case`, `Holds`, `Identified`; `Revision.disagreeing-not-identified` (via `Core.different-candidates-refute-identification`), `Revision.refuted-not-holds` | PROVEN | `scripts/fetch-siblings.sh#97244f5cb63bd6697caff261b187b62e9788b692`, re-checked here at that pin by `scripts/check-agda-kernel.sh` (the sibling's own hosted receipt, run 36740394802, is for its earlier commit `befdf96`)
-| HD-H | Haruspex: the same check before any tokens are spent | OPEN | HDH-01: planned design document; no repository yet
+| HD-H | Haruspex: the same check before any tokens are spent, as the finite-checker pattern; outputs `Sound` / `Epi(pair)` / `Empty(witness)`; no model call | DESIGNED | `docs/proposals/HARUSPEX.adoc#Status:: DESIGNED`, verdict-to-lemma map `docs/proposals/HARUSPEX.adoc#unresolved-sound`; no implementation, no repository
+| HD-H-O | Haruspex's owning organisation (`metadatastician` or `hyperpolymath`) | OPEN | owner decision; `docs/proposals/HARUSPEX.adoc` open question 1
 | ABI-1..5, TP-1 | Idris2 ABI and core-type proofs | OPEN | template files under `verification/proofs/idris2/`; verdicts in its MANIFEST were taken in the template repo; HDH-02 (#29)
 | TP-2 | Public API type safety (Lean) | OPEN | template `verification/proofs/lean4/ApiTypes.lean`, quarantined, has never compiled; HDH-02 (#29)
 |===
@@ -183,4 +185,5 @@ bash tests/proofs/agda_kernel_gate_test.sh  # the kernel gate's negative control
 | 2026-10-14 | Template replaced by the ledger; engine-proofs search recorded; template `StateMachine.tla` removed; HD-2 checker added (HDH-01).
 | 2026-10-14 | HD-F, HD-F-R, RE: OPEN → PROVEN with `Fibre.agda`, `tests/reject/AssertedComplete.agda` and the Proof Kernel gate; HD-F-E recorded as ASSUMED; template `Properties.agda` replaced (HDH-01).
 | 2026-10-14 | HD-W: OPEN → TESTED with the witness block and the Incident replay; HD-W-R recorded; HD-CI: OPEN → TESTED with the Engine Guarantee workflow (HDH-01).
+| 2026-10-14 | HD-H: OPEN → DESIGNED with `docs/proposals/HARUSPEX.adoc`; HD-H-O (owning organisation) recorded OPEN (HDH-01).
 |===
