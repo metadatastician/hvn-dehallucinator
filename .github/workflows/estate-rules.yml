@@ -8,6 +8,7 @@
 #   * AsciiDoc-by-default (no .md files under docs/)
 #   * V-lang is banned (no V-lang scaffolding or references; Zig is the FFI default)
 #   * PROOF-STATUS ledger rows name artefacts that exist in the tree
+#   * the CLADE.a2ml uuid is the one derived from the forge path it records
 #
 # Each rule is enforced by an executable check script under scripts/. Failures
 # are surfaced as workflow errors so the rule can't silently regress.
@@ -39,3 +40,5 @@ jobs:
         run: bash scripts/check-proof-status.sh
       - name: PROOF-STATUS checker refuses its negative controls
         run: bash tests/proofs/check_proof_status_test.sh
+      - name: Repository identity derives from its forge path (ESTATE-UUID-V8 profile C)
+        run: bash tests/identity/clade_uuid_test.sh
