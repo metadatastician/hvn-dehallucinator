@@ -26,6 +26,10 @@ extra coverage.
 == SAST tools are complementary, not redundant
 
 * `codeql.yml` — CodeQL (matrix defaults to `actions`; every repo has workflows).
+  The job fails on error- or warning-level results (`scripts/codeql-gate.sh`), not
+  on upload. It uploads to code scanning only when the repository variable
+  `CODEQL_UPLOAD` is `true`; while CodeQL default setup is on, GitHub refuses
+  advanced-workflow SARIF and default setup owns the Security tab.
 * `sonarqube.yml` — SonarCloud (shell / JS surface; see `sonar-project.properties`).
 * `static-analysis-gate.yml` — panic-attack + Hypatia gate (see above).
 

@@ -20,13 +20,19 @@ proofs/
 ├── lean4/           # Lean4 proofs (algebra, lattices)
 │   └── ApiTypes.lean
 ├── agda/            # Agda kernel proofs (--safe --without-K --no-libraries)
-│   └── Fibre.agda   # COMPLETE needs a measured case (residual-evidence-types by pin)
-└── coq/             # Coq proofs (type systems, compilation)
-    └── TypeSafety.v
+│   ├── Fibre.agda       # COMPLETE needs a measured case (residual-evidence-types by pin)
+│   └── EngineCore.agda  # the engine's command semantics: THE GUARANTEE, budget, breaker
+├── coq/             # Coq proofs (type systems, compilation)
+│   └── TypeSafety.v
+└── tlaplus/         # TLA+ model of the engine, checked by TLC (scripts/check-tla.sh)
+    ├── Engine.tla   # the engine against a changing world and a fallible verifier
+    ├── Engine.cfg   # must check clean
+    └── Original.cfg # the root-commit engine; TLC must refute it
 ----
 
 The template's `tlaplus/StateMachine.tla` was removed on 2026-10-14: it modelled
 the template's example request pipeline, not this engine, and no TLC gate ran it.
+`tlaplus/Engine.tla` replaces it with a model of the engine itself.
 See `docs/status/PROOF-STATUS.adoc` for what each file here does and does not
 establish.
 

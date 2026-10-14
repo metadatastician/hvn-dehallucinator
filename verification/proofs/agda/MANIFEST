@@ -5,3 +5,4 @@
 # residual-evidence-types at its pin (scripts/fetch-siblings.sh) on the include
 # path. Run the whole gate, rejections included, with scripts/check-agda-kernel.sh.
 verification/proofs/agda|Fibre.agda|gated| COMPLETE needs an inhabited measured case; the record alone does not identify what remains
+verification/proofs/agda|EngineCore.agda|gated| the engine's command semantics: THE GUARANTEE, regress and refuse, the breaker and budget, read-only commands; agrees with Fibre

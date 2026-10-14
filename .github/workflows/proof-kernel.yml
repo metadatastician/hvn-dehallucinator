@@ -8,6 +8,9 @@
 #     --safe --without-K --no-libraries --ignore-interfaces --double-check;
 #   * every tests/reject fixture refused at its own declaration;
 # then the gate's own negative controls, so a vacuous gate cannot stay green.
+# A second job runs the TLA+ gate, scripts/check-tla.sh: TLC at a pinned,
+# hash-checked release model-checks verification/proofs/tlaplus/Engine.tla, and
+# must refute the original, caller-asserted engine (Original.cfg).
 # Agda comes from the Ubuntu 24.04 archive (agda-bin 2.6.3), the version the
 # MANIFEST was ground-truthed with.
 
@@ -40,3 +43,13 @@ jobs:
         run: bash scripts/check-agda-kernel.sh
       - name: Gate refuses its negative controls
         run: bash tests/proofs/agda_kernel_gate_test.sh
+  tla-model-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+      - name: TLA+ gate (pinned TLC; the original engine must be refuted)
+        run: |
+          java -version
+          bash scripts/check-tla.sh

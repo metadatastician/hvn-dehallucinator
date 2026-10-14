@@ -172,7 +172,7 @@ refuseWitness recorded why =
     , "  measured: none (" ++ why ++ ")"
     , "  COMPLETE is derived only from an inhabited measured case."
     ] ++
-    [ "  The recorded COMPLETE is left unchanged but no measurement confirms it."
+    [ "  The recorded COMPLETE is demoted to RUNNING: no measurement confirms it."
     | status recorded == statusComplete ] ++
     [ "  A count comes only from measuring a directory: Engine update <targetdir>"
     , "  Proof: Fibre.complete-needs-case (verification/proofs/agda/Fibre.agda)"
@@ -234,9 +234,16 @@ updateFromVerifier root target = withState root $ \st0 -> do
     r <- runVerifier root target
     case r of
         Left e -> do
-            writeState root st1          -- attempt still counted
+            -- The attempt is still counted. A recorded COMPLETE that no
+            -- measurement now confirms is demoted: the record alone does not
+            -- hold COMPLETE (Fibre.record-does-not-hold-complete).
+            let unconfirmed = status st0 == statusComplete
+                st2 = if unconfirmed then st1 { status = statusRunning } else st1
+            writeState root st2
             hPutStrLn stderr ("VERIFICATION FAILED: " ++ e)
-            hPutStrLn stderr "status unchanged. COMPLETE is unreachable without a count."
+            hPutStrLn stderr $ if unconfirmed
+                then "status demoted from COMPLETE to RUNNING. COMPLETE is unreachable without a count."
+                else "status unchanged. COMPLETE is unreachable without a count."
             mapM_ (hPutStrLn stderr) (refuseWitness st0 e)
             exitWith (ExitFailure 4)
         Right remaining -> do
