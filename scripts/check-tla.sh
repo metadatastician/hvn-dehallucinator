@@ -48,7 +48,10 @@ echo "tla2tools $TLA_VERSION @ sha256:$TLA_SHA256"
 meta="$(mktemp -d)"
 trap 'rm -rf "$meta"' EXIT
 # tlc <config> <log>: model-check Engine.tla under <config> with one worker,
-# write TLC's output to <log>, and print TLC's exit code. The caller decides
+# overwrite <log> with TLC's stdout and stderr, and print the command's exit
+# code rather than returning it as this function's exit status. <config> is
+# relative to verification/proofs/tlaplus; a relative <log> is resolved from
+# the repository root. The caller decides
 # what that code means: 0 for Engine.cfg, a violation for Original.cfg.
 tlc() {
   set +e
