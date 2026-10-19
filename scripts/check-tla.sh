@@ -47,7 +47,10 @@ echo "tla2tools $TLA_VERSION @ sha256:$TLA_SHA256"
 
 meta="$(mktemp -d)"
 trap 'rm -rf "$meta"' EXIT
-tlc() { # tlc <config> <log>; prints TLC's exit code
+# tlc <config> <log>: model-check Engine.tla under <config> with one worker,
+# write TLC's output to <log>, and print TLC's exit code. The caller decides
+# what that code means: 0 for Engine.cfg, a violation for Original.cfg.
+tlc() {
   set +e
   (cd "$spec_dir" && java -XX:+UseParallelGC -cp "$ROOT/$jar" tlc2.TLC \
      -config "$1" -workers 1 -metadir "$meta/$1" Engine.tla) >"$2" 2>&1

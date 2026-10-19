@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
 = Proof status — hvn-dehallucinator
-:revdate: 2026-10-14
+:revdate: 2026-10-19
 :toc: preamble
 
 Each row names the artefact that discharges it. Statuses are PROVEN (a checked
