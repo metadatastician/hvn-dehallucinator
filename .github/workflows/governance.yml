@@ -19,4 +19,4 @@ permissions:
 
 jobs:
   governance:
-    uses: hyperpolymath/standards/.github/workflows/governance-reusable.yml@7d51f30f992b51fe2b33119761901c594e266e82 # main 2026-10-06 (after standards#1185)
+    uses: hyperpolymath/standards/.github/workflows/governance-reusable.yml@75bd5994470661a099df562d6d5ad2fe744dbd66 # main 2026-10-19 (after standards#1250: the lock verifier reads lockfile v0.0.3)

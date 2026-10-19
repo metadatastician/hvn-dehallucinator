@@ -20,7 +20,7 @@ workflows:
     '.github/workflows/estate-rules.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/governance.yml':
-        - 'hyperpolymath/standards@7d51f30f992b51fe2b33119761901c594e266e82'
+        - 'hyperpolymath/standards@75bd5994470661a099df562d6d5ad2fe744dbd66'
     '.github/workflows/guix-policy.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/hypatia-scan.yml':
@@ -209,16 +209,18 @@ dependencies:
         commit: 'sha1-89f3c2702f4f650a92aa7411502f38da06abd562'
         owner_id: 6759885
         repo_id: 1275650185
-    'hyperpolymath/standards@7d51f30f992b51fe2b33119761901c594e266e82':
-        ref: '7d51f30f992b51fe2b33119761901c594e266e82'
-        commit: 'sha1-7d51f30f992b51fe2b33119761901c594e266e82'
+    'hyperpolymath/standards@75bd5994470661a099df562d6d5ad2fe744dbd66':
+        ref: '75bd5994470661a099df562d6d5ad2fe744dbd66'
+        commit: 'sha1-75bd5994470661a099df562d6d5ad2fe744dbd66'
         owner_id: 6759885
         repo_id: 1116521501
         uses:
             - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
             - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+            - 'denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed'
             - 'editorconfig-checker/action-editorconfig-checker@51f63319f592f97930c73d9c46184d20bd206393'
             - 'erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124'
+            - 'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6'
     'hyperpolymath/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4':
         ref: 'bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
         commit: 'sha1-bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
@@ -249,6 +251,11 @@ dependencies:
         commit: 'sha1-2d1146689b8cda280b9bc96326124645441f03bc'
         owner_id: 67707773
         repo_id: 421101922
+    'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6':
+        ref: '0c5077e51419868618aeaa5fe8019c62421857d6'
+        commit: 'sha1-0c5077e51419868618aeaa5fe8019c62421857d6'
+        owner_id: 108928776
+        repo_id: 512644635
     'oven-sh/setup-bun@v2.2.0':
         ref: 'v2.2.0'
         commit: 'sha1-0c5077e51419868618aeaa5fe8019c62421857d6'
