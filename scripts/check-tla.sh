@@ -20,8 +20,13 @@ set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 ROOT="$PWD"
 
-TLA_VERSION=v1.8.0
-TLA_SHA256=0f56d6a813368c48008dfbecb23a73ab43a4a5e1bf09f026782a674aa9d4b3c9
+# v1.7.4 is a stable release; its asset never changes, so the hash below can
+# hold. v1.8.0 was pinned until 2026-10-19, but it is the rolling pre-release:
+# its tla2tools.jar is rebuilt in place, and the upstream rebuild broke this
+# pin (sha256 0f56d6a8… became 15d103b7…). The check refused the new jar,
+# as it should.
+TLA_VERSION=v1.7.4
+TLA_SHA256=936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88
 jar="_build/tools/tla2tools-$TLA_VERSION.jar"
 spec_dir=verification/proofs/tlaplus
 
@@ -45,7 +50,7 @@ trap 'rm -rf "$meta"' EXIT
 tlc() { # tlc <config> <log>; prints TLC's exit code
   set +e
   (cd "$spec_dir" && java -XX:+UseParallelGC -cp "$ROOT/$jar" tlc2.TLC \
-     -config "$1" -workers 1 -noGenerateSpecTE -metadir "$meta/$1" Engine.tla) >"$2" 2>&1
+     -config "$1" -workers 1 -metadir "$meta/$1" Engine.tla) >"$2" 2>&1
   echo $?
   set -e
 }
