@@ -51,8 +51,8 @@ trap 'rm -rf "$meta"' EXIT
 # overwrite <log> with TLC's stdout and stderr, and print the command's exit
 # code rather than returning it as this function's exit status. <config> is
 # relative to verification/proofs/tlaplus; a relative <log> is resolved from
-# the repository root. The caller decides
-# what that code means: 0 for Engine.cfg, a violation for Original.cfg.
+# the repository root. The caller decides what that code means: 0 for
+# Engine.cfg, a violation for Original.cfg.
 tlc() {
   set +e
   (cd "$spec_dir" && java -XX:+UseParallelGC -cp "$ROOT/$jar" tlc2.TLC \
