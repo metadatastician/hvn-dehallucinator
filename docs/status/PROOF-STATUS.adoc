@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
 = Proof status — hvn-dehallucinator
-:revdate: 2026-10-14
+:revdate: 2026-10-19
 :toc: preamble
 
 Each row names the artefact that discharges it. Statuses are PROVEN (a checked
@@ -189,13 +189,16 @@ Each refusal is the intended one. `AssertedComplete` fails with `snd world !=
 zero of type Nat when checking that the expression refl has type Complete
 world`; the other two fail with `running != complete of type Fibre.Status`.
 
-HD-1T: local run, 2026-10-14, OpenJDK 21, TLC v1.8.0. It runs in the
-`tla-model-check` job of `.github/workflows/proof-kernel.yml`:
+HD-1T: local run, 2026-10-19, OpenJDK 21, TLC v1.7.4 (TLC2 2.19). It runs in the
+`tla-model-check` job of `.github/workflows/proof-kernel.yml`. The first
+run (2026-10-14) used v1.8.0. That is the rolling pre-release, so its jar was
+later rebuilt upstream and the pinned hash stopped matching. The model, the
+state counts and the refutation are identical under v1.7.4:
 
 [source,text]
 ----
 $ bash scripts/check-tla.sh
-tla2tools v1.8.0 @ sha256:0f56d6a813368c48008dfbecb23a73ab43a4a5e1bf09f026782a674aa9d4b3c9
+tla2tools v1.7.4 @ sha256:936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88
 === Engine.cfg: the engine as it is ===
   17445 states generated, 1375 distinct states found, 0 states left on queue.
   The depth of the complete state graph search is 14.
@@ -233,4 +236,5 @@ bash scripts/check-tla.sh                   # TLA+: TLC on Engine.tla; the origi
 | 2026-10-14 | HD-H: OPEN → DESIGNED with `docs/proposals/HARUSPEX.adoc`; HD-H-O (owning organisation) recorded OPEN (HDH-01).
 | 2026-10-14 | Owner decisions: HD-W-R now demotes an unconfirmed `COMPLETE` (engine, test, and `Fibre.refuse-never-complete`); HD-H owned by metadatastician with three outputs kept, HD-H-O closed (HDH-01).
 | 2026-10-14 | HD-1 re-derived (owner decision): HD-1H TESTED (`tests/hardening_test.sh`), HD-1A PROVEN (`EngineCore.agda`), HD-1T PROVEN at the stated bounds (`Engine.tla`, `scripts/check-tla.sh`); HD-F-E extended to all three models.
+| 2026-10-19 | TLC pin moved from v1.8.0 to v1.7.4. v1.8.0 is the rolling pre-release, and its jar was rebuilt upstream, so the pinned hash no longer matched. The re-run under v1.7.4 gives identical results; HD-1T unchanged.
 |===

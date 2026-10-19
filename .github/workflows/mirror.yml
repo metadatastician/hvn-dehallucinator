@@ -14,5 +14,15 @@ permissions:
   contents: read
 jobs:
   mirror:
-    uses: hyperpolymath/standards/.github/workflows/mirror-reusable.yml@d5fe075a50ab3ce4f41614d66ed77f152fda134f
-    secrets: inherit
+    uses: hyperpolymath/standards/.github/workflows/mirror-reusable.yml@75bd5994470661a099df562d6d5ad2fe744dbd66 # main 2026-10-19: its lock pins actions/checkout by tag
+    # Only the seven keys the reusable declares, not `secrets: inherit`, which
+    # would forward every repository and organisation secret (CWE-250;
+    # standards#1108 §6b). A forge whose key is unset no-ops.
+    secrets:
+      GITLAB_SSH_KEY: ${{ secrets.GITLAB_SSH_KEY }}
+      BITBUCKET_SSH_KEY: ${{ secrets.BITBUCKET_SSH_KEY }}
+      CODEBERG_SSH_KEY: ${{ secrets.CODEBERG_SSH_KEY }}
+      SOURCEHUT_SSH_KEY: ${{ secrets.SOURCEHUT_SSH_KEY }}
+      DISROOT_SSH_KEY: ${{ secrets.DISROOT_SSH_KEY }}
+      GITEA_SSH_KEY: ${{ secrets.GITEA_SSH_KEY }}
+      RADICLE_KEY: ${{ secrets.RADICLE_KEY }}

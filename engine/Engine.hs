@@ -163,7 +163,10 @@ regressWitness target recorded measured =
     , "         (verification/proofs/agda/Fibre.agda)"
     ]
 
--- Refuse: no measurement could be taken, so there is no case to derive from.
+-- | Refuse: no measurement could be taken, so there is no case to derive from.
+-- The lines say COMPLETE cannot be derived and, only when the recorded status
+-- is COMPLETE, that it is demoted to RUNNING. This function only builds the
+-- report; 'updateFromVerifier' writes the demotion.
 refuseWitness :: State -> String -> [String]
 refuseWitness recorded why =
     [ "WITNESS refuse: no measured case, so COMPLETE cannot be derived"
@@ -225,8 +228,15 @@ bumpAttempt root = withState root $ \st0 -> do
     putStrLn $ "Attempt " ++ show (attempts st1) ++ "/"
              ++ show (totalItems st1 + attemptSlack) ++ " recorded."
 
--- The only function that can write COMPLETE, and only from a number this
+-- | The only function that can write COMPLETE, and only from a number this
 -- process obtained from the verifier itself.
+--
+-- An EMERGENCY_STOP state is refused (exit 1). Otherwise the attempt is
+-- charged first, which may trip the circuit breaker (exit 3) before the
+-- verifier runs. If the verifier gives no count, the attempt stays charged, a
+-- recorded COMPLETE is demoted to RUNNING, and the process exits 4. If it
+-- gives a count, progress is the total minus that remaining count (at least
+-- 0), and the status is COMPLETE exactly when the count is 0.
 updateFromVerifier :: FilePath -> FilePath -> IO ()
 updateFromVerifier root target = withState root $ \st0 -> do
     refuseIfStopped st0
