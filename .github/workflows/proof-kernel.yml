@@ -53,3 +53,25 @@ jobs:
         run: |
           java -version
           bash scripts/check-tla.sh
+  models-agree-with-engine:
+    # HD-F-E: tests/difftest.sh runs the real engine over ~2,500 command
+    # sequences and requires EngineCore.agda (via the proof kernel) and
+    # Engine.tla (via TLC trace replay) to reproduce every one, then requires
+    # both to refuse a corrupted trace and two engine mutants.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      LC_ALL: C.UTF-8
+      LANG: C.UTF-8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+      - name: Install GHC and Agda (Ubuntu 24.04 archive)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends ghc agda-bin
+          ghc --version
+          agda --version
+          java -version
+      - name: Differential test (models against the engine)
+        run: bash tests/difftest.sh
