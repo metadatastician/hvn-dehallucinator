@@ -7,7 +7,10 @@
 # Runs the REAL engine (compiled from <engine.hs>) over command sequences and
 # records what it did. Every trace starts with `init 2`; then:
 #   * all sequences of three tokens from the alphabet below (exhaustive);
-#   * hand-written traces that reach the breaker and the Incident;
+#   * the same, but with a first token that sets the baseline to 1 or 3
+#     (i1 i3 f1 f3), so that every baseline 0..3 is tried;
+#   * hand-written traces: the breaker at each baseline, regression, refusal,
+#     demotion and recovery;
 #   * DIFF_RANDOM (default 300) seeded pseudo-random sequences of 14 tokens.
 #
 # Tokens:  i<n> init n | f<n> init-from, verifier counts n | ff init-from,
@@ -34,7 +37,7 @@ export HARVARD_ROOT="$work/root"
 root="$work/root"; T="$work/target"; E="$work/Engine"
 
 ALPHABET=(i2 i0 f0 f2 ff at u0 u1 u2 u3 uf v1 st)
-WEIGHTED=(i2 i0 f0 f2 ff at at at at at u0 u0 u1 u2 u3 uf uf v1 st)
+WEIGHTED=(i2 i0 i1 i3 f0 f2 f1 f3 ff at at at at at u0 u0 u1 u2 u3 uf uf v1 st)
 
 run_token() { # run_token <token>; prints the exit code
   local t="$1" rc=0
@@ -68,13 +71,22 @@ trace() { # trace <token>...; appends one line to $out
 for a in "${ALPHABET[@]}"; do for b in "${ALPHABET[@]}"; do for c in "${ALPHABET[@]}"; do
   trace "$a" "$b" "$c"
 done; done; done
-# 2. hand-written: the breaker, the Incident, demotion and recovery
+# 1b. exhaustive, three tokens, the first setting the baseline to 1 or 3
+for a in i1 i3 f1 f3; do for b in "${ALPHABET[@]}"; do for c in "${ALPHABET[@]}"; do
+  trace "$a" "$b" "$c"
+done; done; done
+# 2. hand-written: the breaker, regression, refusal, demotion and recovery
 trace at at at at at at at at at at
 trace i0 at at at at at at at at
 trace u0 at at at at at at at at u0 i2 at u0
 trace u0 u2 uf u0 uf at
 trace f2 u0 uf uf u1 u0 at st v1
 trace i0 u0 u0 u0 u0 u0 u0 u0 u0
+# the breaker at baselines 1 and 3 (it trips on attempt total + 6)
+trace i1 at at at at at at at at
+trace f1 at at at at at at at at
+trace i3 at at at at at at at at at at
+trace f3 u1 at at at at at at at at at at i3 at
 # 3. seeded pseudo-random
 seed=20261026; n="${DIFF_RANDOM:-300}"
 for ((k = 0; k < n; k++)); do

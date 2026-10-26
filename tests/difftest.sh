@@ -13,7 +13,8 @@
 #    (tests/difftest/TraceCheck.tla); every trace must be replayed to its end.
 # 4. Negative controls: the check must FAIL on (a) a corrupted observation,
 #    (b) an engine whose breaker slack is 6, (c) an engine that keeps COMPLETE
-#    when the verifier fails. A comparison that cannot fail proves nothing.
+#    when the verifier fails, (d) an engine whose `init 0` sets the total to 1.
+#    A comparison that cannot fail proves nothing.
 #
 # This ties the models to the engine on the traces tried, not for all inputs:
 # HD-F-E is TESTED, not PROVEN. DIFF_RANDOM=<n> sets the random traces (300).
@@ -88,6 +89,7 @@ mutant() { # mutant <name> <sed-expression>: engine drift must be caught by both
 }
 mutant "breaker slack 6"          's/^attemptSlack = 5/attemptSlack = 6/'
 mutant "keeps COMPLETE on failed verifier" 's/st2 = if unconfirmed then st1 { status = statusRunning } else st1/st2 = st1/'
+mutant "init 0 sets total 1"      's/writeState root (State total 0 0 statusRunning)/writeState root (State (max 1 total) 0 0 statusRunning)/'
 
 printf '\nPASS=%s FAIL=%s\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

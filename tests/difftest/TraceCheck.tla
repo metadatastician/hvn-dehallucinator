@@ -23,7 +23,8 @@ Pin == Rec[6] = 99 \/ remaining = Rec[6]
 Obs == /\ total' = Rec[2] /\ completed' = Rec[3]
        /\ attempts' = Rec[4] /\ status' = Rec[5]
 
-Act == \/ Rec[1] = "init"     /\ InitN
+\* InitN chooses its total; `init <n>` must reset to the n it was given.
+Act == \/ Rec[1] = "init"     /\ InitN /\ total' = Rec[7]
        \/ Rec[1] = "initfrom" /\ InitFrom
        \/ Rec[1] = "attempt"  /\ Attempt
        \/ Rec[1] = "updm"     /\ UpdateMeasured
