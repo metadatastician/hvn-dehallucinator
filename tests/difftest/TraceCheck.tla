@@ -29,6 +29,9 @@ Act == \/ Rec[1] = "init"     /\ InitN
        \/ Rec[1] = "updm"     /\ UpdateMeasured
        \/ Rec[1] = "updf"     /\ UpdateFailed
        \/ Rec[1] = "ro"       /\ UNCHANGED vars
+       \* refuseIfStopped: Engine.tla has no action for a stopped engine, so the
+       \* engine refusing (exit 1, state untouched) is a stuttering step.
+       \/ Rec[1] = "refused"  /\ status = Stop /\ UNCHANGED vars
 
 TInit == Init /\ tid \in 1 .. Len(Tr) /\ ptr = 0
 

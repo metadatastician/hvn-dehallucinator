@@ -31,6 +31,8 @@ cls() { case "$1" in
       [ "$i" -gt 0 ] && printf ', '
       IFS=, read -r rc tot comp att st <<< "${recs[$i]}"
       IFS=, read -r c rem <<< "$(cls "${tk[$i]}")"
+      # a command refused by a stopped engine (exit 1) is a stutter in Engine.tla
+      case "${tk[$i]}:$rc" in at:1|u*:1) c='"refused"'; rem=99 ;; esac
       printf '<<%s, %s, %s, %s, "%s", %s>>' "$c" "$tot" "$comp" "$att" "$st" "$rem"
     done
     printf '>>'
