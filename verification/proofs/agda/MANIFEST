@@ -6,3 +6,6 @@
 # path. Run the whole gate, rejections included, with scripts/check-agda-kernel.sh.
 verification/proofs/agda|Fibre.agda|gated| COMPLETE needs an inhabited measured case; the record alone does not identify what remains
 verification/proofs/agda|EngineCore.agda|gated| the engine's command semantics: THE GUARANTEE, regress and refuse, the breaker and budget, read-only commands; agrees with Fibre
+verification/proofs/agda|Haruspex.agda|gated| HD-H: the pre-flight check over a declared finite schema; total, no model call; every output sound in the Core vocabulary, Sound complete
+verification/proofs/agda|HaruspexExplorer.agda|gated| HD-H: on the certified checker's model, the same candidates and verdicts on all 546 configurations, by refl
+verification/proofs/agda|HaruspexIncident.agda|gated| HD-H: the Incident as a pre-flight check; Epi with the engine's blind-spot pair, Empty, Sound 15272, Empty
