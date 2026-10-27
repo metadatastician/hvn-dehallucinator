@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
 = Proof status — hvn-dehallucinator
-:revdate: 2026-10-19
+:revdate: 2026-10-26
 :toc: preamble
 
 Each row names the artefact that discharges it. Statuses are PROVEN (a checked
@@ -30,8 +30,8 @@ invariants and the breaker's behaviour. `Fibre.agda` proves the epistemic core:
 the recorded state alone does not identify what remains, and COMPLETE needs an
 inhabited measured case. A TLA+ model, checked by TLC, puts the engine against a
 world that changes freely and a verifier that can fail. It finds no violation,
-and it does find the Incident in the original engine. These models are tied to
-`Engine.hs` by inspection only (HD-F-E). The 2026-08-27 engine proofs were
+and it does find the Incident in the original engine. A differential test ties these models to
+`Engine.hs` on 3,183 recorded engine traces (HD-F-E, TESTED; not a proof). The 2026-08-27 engine proofs were
 never pushed; these re-derive them (see below). Haruspex, the same check run
 before a prompt is sent, is
 designed but not built (`docs/proposals/HARUSPEX.adoc`), and will live under
@@ -57,7 +57,7 @@ about this project; HDH-02 (#29) tracks them.
 | HD-W-R | A failed re-measurement demotes a recorded `COMPLETE` to `RUNNING` (owner decision, 2026-10-14); any other status is left as it was | TESTED | `tests/witness_test.sh#attempt charged, COMPLETE demoted (Fibre.incident-refused)`, `tests/witness_test.sh#says the recorded COMPLETE is demoted`, control `tests/witness_test.sh#and leaves RUNNING as it was`; implemented in `engine/Engine.hs#status demoted from COMPLETE to RUNNING`
 | HD-F | In a model of the engine's update: `COMPLETE` needs an inhabited measured case whose every candidate has nothing remaining; an asserted and a measured count that differ are two readings of one record that refute identification; "done" against a non-zero measurement has no case; with no measurement the refuse path never leaves `COMPLETE` | PROVEN | `verification/proofs/agda/Fibre.agda#complete-needs-case`, `verification/proofs/agda/Fibre.agda#asserted-not-identified`, `verification/proofs/agda/Fibre.agda#hallucinated-complete-has-no-case`, `verification/proofs/agda/Fibre.agda#incident-not-complete`, `verification/proofs/agda/Fibre.agda#refuse-never-complete`; checked by `scripts/check-agda-kernel.sh` in `.github/workflows/proof-kernel.yml`
 | HD-F-R | The Incident as a refused derivation: `COMPLETE` from the record 16/16/0/`COMPLETE` alone does not typecheck | PROVEN | `tests/reject/AssertedComplete.agda`, refused at its declaration; the gate's own negative controls in `tests/proofs/agda_kernel_gate_test.sh`
-| HD-F-E | The models (`Fibre.agda`, `EngineCore.agda`, `Engine.tla`) agree with `Engine.hs` | ASSUMED | by inspection only: `verification/proofs/agda/EngineCore.agda#step : Command`, `verification/proofs/agda/Fibre.agda#update s m = task`, `verification/proofs/agda/Fibre.agda#refuse s = task`, `engine/Engine.hs#done = max 0 (totalItems st1 - remaining)`; no extraction or differential test ties them
+| HD-F-E | The models (`Fibre.agda`, `EngineCore.agda`, `Engine.tla`) agree with `Engine.hs` | TESTED | differential, on the traces tried, not for all inputs: `tests/difftest.sh` runs the real engine over 3,183 command sequences (every 3-command sequence after `init 2`, and every one whose first command sets the baseline to 1 or 3 instead; by hand, the breaker at each baseline 0..3 and regression, refusal, demotion and recovery; 300 seeded random 14-command runs; totals and counts 0..3). `EngineCore.step` (and through it `Fibre.update`, `Fibre.refuse`) must reproduce each one, state and exit code, as a `refl` lemma checked by the proof kernel (`tests/difftest/to_agda.sh#t$k = refl`); TLC must replay each one with `Engine.tla`'s own actions, `init <n>` bound to the n it was given (`tests/difftest/TraceCheck.tla#TNext ==`). Controls: both refuse a corrupted observation and three engine mutants (`tests/difftest.sh#breaker slack 6`, `tests/difftest.sh#keeps COMPLETE on failed verifier`, `tests/difftest.sh#init 0 sets total 1`). CI: Proof Kernel / models-agree-with-engine. A command refused by a stopped engine is a stuttering step in `Engine.tla`, which has no action for it
 | RE | Consumed from residual-evidence-types by pin, re-checked here under `--double-check`: `Core.Candidate`, `Case`, `Holds`, `Identified`; `Revision.disagreeing-not-identified` (via `Core.different-candidates-refute-identification`), `Revision.refuted-not-holds` | PROVEN | `scripts/fetch-siblings.sh#97244f5cb63bd6697caff261b187b62e9788b692`, re-checked here at that pin by `scripts/check-agda-kernel.sh` (the sibling's own hosted receipt, run 36740394802, is for its earlier commit `befdf96`)
 | HD-H | Haruspex: the same check before any tokens are spent, as the finite-checker pattern; three outputs `Sound` / `Epi(pair)` / `Empty(witness)`; no model call; owned by metadatastician | DESIGNED | `docs/proposals/HARUSPEX.adoc#Status:: DESIGNED`, verdict-to-lemma map `docs/proposals/HARUSPEX.adoc#unresolved-sound`, decisions `docs/proposals/HARUSPEX.adoc#Owning organisation: metadatastician`; no implementation, no repository
 | ABI-1..5, TP-1 | Idris2 ABI and core-type proofs | OPEN | template files under `verification/proofs/idris2/`; verdicts in its MANIFEST were taken in the template repo; HDH-02 (#29)
@@ -223,6 +223,7 @@ bash tests/proofs/check_proof_status_test.sh  # the ledger checker's negative co
 bash scripts/check-agda-kernel.sh           # Agda kernel: pinned siblings, MANIFEST, tests/reject
 bash tests/proofs/agda_kernel_gate_test.sh  # the kernel gate's negative controls
 bash scripts/check-tla.sh                   # TLA+: TLC on Engine.tla; the original engine must be refuted (needs java)
+bash tests/difftest.sh                     # HD-F-E: the Agda and TLA+ models must reproduce the real engine's traces (needs ghc, agda, java)
 ----
 
 == Changelog
@@ -237,4 +238,5 @@ bash scripts/check-tla.sh                   # TLA+: TLC on Engine.tla; the origi
 | 2026-10-14 | Owner decisions: HD-W-R now demotes an unconfirmed `COMPLETE` (engine, test, and `Fibre.refuse-never-complete`); HD-H owned by metadatastician with three outputs kept, HD-H-O closed (HDH-01).
 | 2026-10-14 | HD-1 re-derived (owner decision): HD-1H TESTED (`tests/hardening_test.sh`), HD-1A PROVEN (`EngineCore.agda`), HD-1T PROVEN at the stated bounds (`Engine.tla`, `scripts/check-tla.sh`); HD-F-E extended to all three models.
 | 2026-10-19 | TLC pin moved from v1.8.0 to v1.7.4. v1.8.0 is the rolling pre-release, and its jar was rebuilt upstream, so the pinned hash no longer matched. The re-run under v1.7.4 gives identical results; HD-1T unchanged.
+| 2026-10-26 | HD-F-E: ASSUMED → TESTED with `tests/difftest.sh`: the real engine on 3,183 traces, reproduced by `EngineCore.step` in the proof kernel and replayed by TLC against `Engine.tla`, with a corrupted trace and three engine mutants refused. Not a proof: it covers the traces tried.
 |===

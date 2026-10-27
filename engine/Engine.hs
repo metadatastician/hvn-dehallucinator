@@ -228,8 +228,9 @@ bumpAttempt root = withState root $ \st0 -> do
     putStrLn $ "Attempt " ++ show (attempts st1) ++ "/"
              ++ show (totalItems st1 + attemptSlack) ++ " recorded."
 
--- | The only function that can write COMPLETE, and only from a number this
--- process obtained from the verifier itself.
+-- | The only function that sets the status to COMPLETE, and only from a number
+-- this process obtained from the verifier itself. ('bumpAttempt' rewrites a
+-- state that is already COMPLETE, but never sets it.)
 --
 -- An EMERGENCY_STOP state is refused (exit 1). Otherwise the attempt is
 -- charged first, which may trip the circuit breaker (exit 3) before the

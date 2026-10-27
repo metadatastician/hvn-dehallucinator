@@ -40,7 +40,8 @@
 --                          original engine writing COMPLETE from a typed 0
 --
 -- Checked by scripts/check-agda-kernel.sh (residual-evidence-types pinned, via
--- Fibre). That this model matches Engine.hs is by inspection, not by proof.
+-- Fibre). That this model matches Engine.hs is TESTED, not proved: tests/difftest.sh
+-- has the kernel reproduce the real engine's recorded traces (HD-F-E).
 
 module EngineCore where
 
