@@ -54,10 +54,10 @@ jobs:
           java -version
           bash scripts/check-tla.sh
   models-agree-with-engine:
-    # HD-F-E: tests/difftest.sh runs the real engine over ~2,500 command
+    # HD-F-E: tests/difftest.sh runs the real engine over 3,183 command
     # sequences and requires EngineCore.agda (via the proof kernel) and
     # Engine.tla (via TLC trace replay) to reproduce every one, then requires
-    # both to refuse a corrupted trace and two engine mutants.
+    # both to refuse a corrupted trace and three engine mutants.
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:

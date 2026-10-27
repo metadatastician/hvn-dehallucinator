@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
 = Haruspex: a pre-flight check for prompts
-:revdate: 2026-10-14
+:revdate: 2026-10-27
 :toc:
 :toclevels: 2
 
 [horizontal]
-Status:: DESIGNED. This document is the only artefact. There is no implementation, no repository, and no proof of anything specific to Haruspex.
+Status:: The checker is PROVEN: `verification/proofs/agda/Haruspex.agda`, with `HaruspexExplorer.agda`, `HaruspexIncident.agda` and two `tests/reject` fixtures, checked by the Proof Kernel gate (2026-10-27). Nothing yet feeds it real prompts: there is no runtime harness and no schema extraction (<<open-questions>>).
 Owning organisation:: metadatastician (owner decision, 2026-10-14).
-Tracks:: HDH-01 (#28), ledger row HD-H in `docs/status/PROOF-STATUS.adoc`.
+Tracks:: HDH-01 (#28), ledger rows HD-H and HD-H-R in `docs/status/PROOF-STATUS.adoc`.
 
 == What it is
 
@@ -61,21 +61,34 @@ instantiates for the engine (residual-evidence-types, pinned by
 | `Case observe r ⟦ Γ ⟧` | `unmeasured s`, `measured s m` | at least one reading fits the context and its assumptions
 |===
 
-The outputs are the Core's verdicts, as decided by the finite checker and made
-sound by `ResidualEvidence.Finite.Soundness`. The lemmas below are in
-residual-evidence-types at `97244f5`:
+The outputs are the Core's verdicts. The certified finite checker of
+residual-evidence-types decides them for its one fixed model, and
+`ResidualEvidence.Finite.Soundness` proves them sound there. `Haruspex.Check`
+decides the same verdicts for any declared schema and proves one lemma per
+verdict, with the same names, stated in the same Core vocabulary (`Candidate`,
+`Case`, `Holds`, `Identified`, and `Refuted` / `Disagreeing` from `Revision`):
 
-[cols="1,2,2",options="header"]
+[cols="1,2,3",options="header"]
 |===
-| Checker verdict | Haruspex output | Soundness lemma it relies on
+| Verdict | Haruspex output | Lemma in `Haruspex.Check`
 
-| `entailed` | `Sound` | `entailed-sound`: every candidate satisfies the claim (`Holds c P`)
-| `identified` | `Sound` | `identified-sound`: every candidate has the one listed value (`Identified c q`)
+| `entailed` | `Sound` | `entailed-sound`: every candidate satisfies the claim (`Holds c (Yes P)`); `entailed-complete` is the converse
+| `identified` | `Sound` | `identified-sound`: every candidate has the one value (`Identified c q`); `identified-complete` is the converse
 | `unresolved` | `Epi(pair)` | `unresolved-sound`: a supporting and a counterexample candidate both exist
-| `unidentified` | `Epi(pair)` | `unidentified-sound`: two candidates disagree on the value; with `Core.different-candidates-refute-identification`, `¬ Identified`
-| `refuted` | `Empty(witness)` | `refuted-sound`: every candidate satisfies the negation, so no reading supports the claim
+| `unidentified` | `Epi(pair)` | `unidentified-sound`: two candidates disagree on the value (`Disagreeing`); `unidentified-refutes`: `¬ Identified` for every case
+| `refuted` | `Empty(witness)` | `refuted-sound`: every candidate satisfies the negation; `refuted-refutes`: the refuting reading as positive data (`Refuted`)
 | `inconsistent` | `Empty(witness)` | `inconsistent-sound`: the context has no case at all (compare `Presence.conflict-has-no-case`)
+| `no-candidate` | `Empty(witness)` | `no-candidate-sound`: a value asked of a context with no case at all
 |===
+
+The generic lemmas do not reduce to the certified checker's own, which are
+fixed to its integer worlds. The tie is `HaruspexExplorer`: the certified
+checker's model, declared as a Haruspex schema, gives the same candidates in the
+same order (`candidates-match`), the same verdicts (`presence-match`,
+`identity-match`) and the outputs this table predicts (`outputs-match`), on all
+546 configurations by `refl`. Its candidates are the certified checker's
+`FiniteCandidate`s and back (`to-finite` / `from-finite`), so the certified
+lemmas apply to them as well.
 
 `Epi` is meant in the sense of epistemic-types at `6a68de3` (`Warrant.agda`).
 An `Epi κ A` packages a warrant with a token and does not yield `A`. Only a
@@ -86,60 +99,78 @@ to an `Epi` prompt is such a token. A `Sound` verdict is a checker certificate
 with its soundness lemma, which is the missing map.
 
 Applying any verdict to the *actual* context needs every assumption of the
-evidence supplied explicitly (`finite-actual-sound`). Haruspex therefore reports
-which assumptions a verdict rests on, and never drops one silently.
+evidence supplied explicitly (`finite-actual-sound` there, `actual-sound`
+here). The schema's enumeration is the first assumption (`Listed`), as the
+certified checker's loop bounds are (`InRange`): a candidate is a reading the
+schema lists, and nothing transfers to a reading the schema does not list. For
+a schema that proves its listing complete, `listing-complete-sound` discharges
+that premise once. The prompt's assumptions travel with it, so a verdict never
+drops one silently.
 
 == Interface
 
 The interface is the finite checker's, generalised from its fixed explorer
-model to a declared schema. Below is a sketch of the shape. It is *not* a checked
-module, and the names in it that are not in residual-evidence-types are
-proposals.
+model to a declared schema. It is checked, in
+`verification/proofs/agda/Haruspex.agda`:
 
 [source,agda]
 ----
 -- reused from residual-evidence-types (by pin): Candidate, Case, Holds,
--- Identified, Ctx, ⟦_⟧, Finite.Row.Verdict, Finite.Row.IdStatus.
+-- Identified, Refuted, Disagreeing, Ctx, ⟦_⟧, Finite.Row.Verdict,
+-- Finite.Row.IdStatus, Finite.Checker.classify.
 
 record Schema : Set₁ where          -- the context, declared, finite
   field
-    Reading   : Set
-    readings  : List Reading        -- enumeration, complete for Reading
-    Shown     : Set
-    shows     : Reading → Shown     -- the observation
-    _≟shown_  : Shown → Shown → Bool  -- decidable, with soundness
+    Reading    : Set
+    readings   : List Reading        -- the declared enumeration
+    Shown      : Set
+    shows      : Reading → Shown     -- the observation
+    _≟_        : Shown → Shown → Bool
+    ≟-sound    : ∀ a b → (a ≟ b) ≡ true → a ≡ b
+    ≟-complete : ∀ a b → a ≡ b → (a ≟ b) ≡ true
+
+data Ask (R : Set) : Set₁ where
+  claim : (R → Bool) → Ask R         -- "confirm that ..."
+  query : Query R → Ask R            -- "report the value of ...", decidable equality
 
 record Prompt (S : Schema) : Set₁ where
   field
-    shown       : Schema.Shown S    -- what the prompt will carry
-    assumptions : List (Schema.Reading S → Bool)   -- Γ, decidable
-    ask         : Ask S             -- a yes/no claim or a value query
+    shown       : Schema.Shown S                    -- what the prompt will carry
+    assumptions : List (Schema.Reading S → Bool)    -- Γ, decidable
+    ask         : Ask (Schema.Reading S)
 
-data Output (S : Schema) (p : Prompt S) : Set where
-  sound  : Certificate S p → Output S p        -- entailed / identified
-  epi    : Pair S p        → Output S p        -- unresolved / unidentified
-  empty  : Refutation S p  → Output S p        -- refuted / inconsistent
+-- in module Check S, by the shape of the ask:
+data Output r as a : Set where
+  sound : Certificate r as a → Output r as a        -- entailed / identified
+  epi   : Pair r as a        → Output r as a        -- unresolved / unidentified
+  empty : Refutation r as a  → Output r as a        -- refuted / inconsistent / no-candidate
 
-haruspex : (S : Schema) (p : Prompt S) → Output S p   -- total; no model call
+haruspex : (S : Schema) (p : Prompt S) → Output S p  -- total; no model call
 ----
 
-The obligations to discharge, before the implementation can claim anything:
+The four obligations, and what discharges each:
 
 . *Enumeration soundness and completeness*: a reading is a Core candidate for
-  `p` exactly when the enumeration produces it. This is the analogue of
-  `enumerate-sound` / `enumerate-complete`.
-. *Verdict soundness*: one lemma per row of the verdict table, each by reduction
-  to the residual-evidence-types lemma named there.
-. *A correspondence table*: as `Correspondence.checker-matches-explorer` does
-  for the explorer, the implementation's verdicts equal the certified checker's
-  on a closed table of schemas, by `refl`.
-. *Reject fixtures*: `tests/reject` entries in which a `Sound` certificate is
-  claimed for an `Epi` prompt, and an `Epi` pair is claimed for an
-  `inconsistent` context. Each must be refused at its declaration.
+  `p` exactly when the enumeration produces it: `Check.candidate-∈` and
+  `Check.∈-candidate`, the analogues of `enumerate-complete` and
+  `enumerate-sound`.
+. *Verdict soundness*: one lemma per row of the verdict table above, in
+  `Haruspex.Check`, with completeness for `Sound` (`entailed-complete`,
+  `identified-complete`): when a certificate exists, Haruspex gives it.
+. *A correspondence table*: `HaruspexExplorer`, by `refl` on all 546
+  configurations of the certified checker's model (candidates, both verdicts,
+  and the outputs). Mutating the declared schema (dropping the zero assumption,
+  or tightening the noise bound by one) is refused by the conversions, and by
+  `candidates-match` on its own when the conversions are taken out (run by
+  hand, 2026-10-27).
+. *Reject fixtures*: `tests/reject/SoundForEpi.agda` claims a `Sound`
+  certificate for the Incident's `Epi` prompt; `tests/reject/EpiForInconsistent.agda`
+  claims an `Epi` pair for its inconsistent one. The kernel gate requires each
+  to be refused with a type error at its own declaration.
 
 Per the estate rulings, the certified checker is Agda (`--safe --without-K`).
-Any runtime harness that feeds it schemas belongs to the Idris2 layer. No
-Python, and JavaScript only under Bun.
+Any runtime harness that feeds it schemas belongs to the Idris2 layer, and
+none exists yet (HD-H-R). No Python, and JavaScript only under Bun.
 
 == Worked example: the Incident as a pre-flight check
 
@@ -147,17 +178,27 @@ Suppose the author sends, on 2026-08-23, the prompt "confirm the migration is
 COMPLETE", with the context the agent had: `state/state.txt` reading
 `16 / 16 / 0 / COMPLETE` and no measurement.
 
-* Schema: readings are (recorded state, surviving count); the context shows the
-  recorded state; there are no assumptions; the claim is `Complete`.
+This example is checked: `verification/proofs/agda/HaruspexIncident.agda`.
+
+* Schema: readings are (recorded state, surviving count). The author declares
+  the records the agent could hold (16/16/0/`COMPLETE`, or the 16/0/1/`RUNNING`
+  the engine writes on the measurement) and the counts that could remain (none,
+  or 15272). The context shows the recorded state; there are no assumptions;
+  the claim is "nothing remains".
 * Haruspex finds the reading `(16/16/0/COMPLETE, 0)` and the reading
   `(16/16/0/COMPLETE, 15272)`. Both fit and they disagree on the claim, so the
-  output is `Epi(pair)`. This is `Fibre.incident-witness`: the pair the engine
-  now prints after the fact, delivered before the prompt is sent.
-* Add the measurement to the context (`Measured 15272`) and ask again: the
-  claim has no candidate, and the output is `Empty`
-  (`Fibre.hallucinated-complete-has-no-case`).
+  output is `Epi(pair)` (`confirm-is-epi`). Read as Fibre candidates under the
+  record alone, they are the readings of `Fibre.incident-witness`
+  (`same-readings-as-the-engine`): the pair the engine now prints after the
+  fact, delivered before the prompt is sent.
+* Add the measurement to the context (remaining is 15272) and ask again: every
+  candidate refutes the claim, and the output is `Empty`, with the refuting
+  reading `(16/16/0/COMPLETE, 15272)` (`refuted-is-empty`, `refuting-reading`).
+* Assert "done" on top of the measurement: no reading fits the record, the
+  measurement and the claim together, and the output is `Empty` with no case
+  at all (`asserted-has-no-case`; compare `Fibre.hallucinated-complete-has-no-case`).
 * Ask instead "how many artefacts remain?" with the measurement in the context.
-  The output is `Sound`, with value 15272.
+  The output is `Sound`, with value 15272 (`how-many-is-sound`, `how-many-value`).
 
 [[as-the-proofs-progress]]
 == As the proofs progress
@@ -189,8 +230,12 @@ COMPLETE", with the context the agent had: `state/state.txt` reading
 . *Where the schema comes from.* Haruspex checks a declared schema; it does not
   read free text, which would need a model. Who declares the schema for a prompt
   (the author, a tool, a template library) is outside this design.
+. *The runtime harness (HD-H-R, OPEN).* The checker is a total Agda function,
+  checked by normalisation. Nothing yet runs it on a schema supplied at run
+  time, or reports its output to an author. That harness belongs to the Idris2
+  layer.
 
 == Out of scope
 
-The implementation; any claim about LLM internals; extracting a schema from a
-natural-language prompt.
+Any claim about LLM internals; extracting a schema from a natural-language
+prompt.
