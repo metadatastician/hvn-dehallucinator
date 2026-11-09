@@ -4,9 +4,12 @@
 :revdate: 2026-10-27
 :toc: preamble
 
-Each row names the artefact that discharges it. Statuses are PROVEN (a checked
-proof), TESTED (an executable check that can fail), ASSUMED, DESIGNED (a
-written design, nothing executable) and OPEN (nothing yet). A status moves only
+Each row names the artefact that discharges it. Statuses are the closed
+vocabulary of standards PROOF-POLICY §5: PROVEN (a kernel-checked proof, no
+escape hatch), PROVEN-WITH-AXIOMS (kernel-checked, resting on named axioms),
+TESTED (an executable check on a bounded or sampled domain, with its bounds),
+ASSUMED (a stated hypothesis, or a transcription no kernel checked) and OPEN
+(not done). A status moves only
 with a named module, lemma, fixture or log line. `scripts/check-proof-status.sh`
 refuses this file if a row that is not OPEN names a path or a fragment that is
 not in the tree.
@@ -52,7 +55,7 @@ about this project; HDH-02 (#29) tracks them.
 | HD-CI | The guarantee and witness suites run in CI on every pull request and push to `main` | TESTED | `.github/workflows/engine-guarantee.yml#bash tests/guarantee_test.sh`, `.github/workflows/engine-guarantee.yml#bash tests/witness_test.sh`
 | HD-1H | The hardening suite, re-derived: root finding, total parsing, atomic writes, argument handling, verifier failures (never read as a count), read-only commands, the breaker reset, the verifier's pruning | TESTED | `tests/hardening_test.sh#a verifier that prints 0 but exits non-zero: exit 4, not COMPLETE`, `tests/hardening_test.sh#verify and status never write`, `tests/hardening_test.sh#init is the deliberate reset`, run by `.github/workflows/engine-guarantee.yml#bash tests/hardening_test.sh`; negative control: 19 of its checks fail against the root-commit engine
 | HD-1A | The engine's command semantics: no command introduces `COMPLETE` except an update whose reading is a counted zero; regress and refuse; the breaker trips past total+5 and `EMERGENCY_STOP` absorbs every non-reset command; every command keeps "stopped, or attempts <= total+5" and completed <= total; the update branches are Fibre's | PROVEN | `verification/proofs/agda/EngineCore.agda#guarantee`, `verification/proofs/agda/EngineCore.agda#within-preserved`, `verification/proofs/agda/EngineCore.agda#bounded-preserved`, `verification/proofs/agda/EngineCore.agda#stop-absorbs`, `verification/proofs/agda/EngineCore.agda#refuse-demotes`, `verification/proofs/agda/EngineCore.agda#agrees-update`; refused fixtures `tests/reject/TypedZeroComplete.agda`, `tests/reject/NonZeroComplete.agda`; `scripts/check-agda-kernel.sh`
-| HD-1T | TLA+, model-checked by TLC exhaustively at MaxTotal = 3 and MaxRemaining = 4 (Engine.cfg), with a world that changes freely and a verifier that may fail: every reachable state satisfies Guarantee (`COMPLETE` stands only on a measured zero), Budget and CompletedBounded, and `COMPLETE` is introduced only with a measured zero; the original, caller-asserted engine violates Guarantee | PROVEN | `verification/proofs/tlaplus/Engine.tla#Guarantee ==`, `verification/proofs/tlaplus/Engine.cfg`, negative control `verification/proofs/tlaplus/Original.cfg`; `scripts/check-tla.sh` in `.github/workflows/proof-kernel.yml#tla-model-check`
+| HD-1T | TLA+, model-checked by TLC exhaustively at MaxTotal = 3 and MaxRemaining = 4 (Engine.cfg), with a world that changes freely and a verifier that may fail: every reachable state satisfies Guarantee (`COMPLETE` stands only on a measured zero), Budget and CompletedBounded, and `COMPLETE` is introduced only with a measured zero; the original, caller-asserted engine violates Guarantee | TESTED | `verification/proofs/tlaplus/Engine.tla#Guarantee ==`, `verification/proofs/tlaplus/Engine.cfg`, negative control `verification/proofs/tlaplus/Original.cfg`; `scripts/check-tla.sh` in `.github/workflows/proof-kernel.yml#tla-model-check`. A finite model check, so TESTED at these bounds, not PROVEN (PROOF-POLICY §4); TLA+ instead of Idris2 is a recorded §4 exception, `verification/proofs/tlaplus/Engine.tla#PROOF-POLICY section 4 exception`
 | HD-2 | This file reflects the tree | TESTED | `scripts/check-proof-status.sh`, with negative controls in `tests/proofs/check_proof_status_test.sh`
 | HD-W | Regress prints the blind-spot witness (recorded remaining 0 and measured remaining, disagreeing on `COMPLETE`); refuse prints the no-case block; neither touches the state file | TESTED | `engine/Engine.hs#regressWitness`, `engine/Engine.hs#refuseWitness`; the Incident replayed at 16/16/0/`COMPLETE` against 15,272 files: `tests/witness_test.sh#measured reading: remaining 15272`, `tests/witness_test.sh#state becomes 16/0/1/RUNNING (Fibre.incident-regresses)`, controls `tests/witness_test.sh#record and measurement agree on COMPLETE`
 | HD-W-R | A failed re-measurement demotes a recorded `COMPLETE` to `RUNNING` (owner decision, 2026-10-14); any other status is left as it was | TESTED | `tests/witness_test.sh#attempt charged, COMPLETE demoted (Fibre.incident-refused)`, `tests/witness_test.sh#says the recorded COMPLETE is demoted`, control `tests/witness_test.sh#and leaves RUNNING as it was`; implemented in `engine/Engine.hs#status demoted from COMPLETE to RUNNING`
@@ -65,6 +68,39 @@ about this project; HDH-02 (#29) tracks them.
 | ABI-1..5, TP-1 | Idris2 ABI and core-type proofs | OPEN | template files under `verification/proofs/idris2/`; verdicts in its MANIFEST were taken in the template repo; HDH-02 (#29)
 | TP-2 | Public API type safety (Lean) | OPEN | template `verification/proofs/lean4/ApiTypes.lean`, quarantined, has never compiled; HDH-02 (#29)
 |===
+
+[[toolchain-deviations]]
+== Toolchain deviations (PROOF-POLICY §6)
+
+PROOF-POLICY §6 asks for proof toolchains from the repository's Guix manifest
+or its container. Here they come from the Ubuntu 24.04 archive, because
+`guix.scm` is the template's: it carries coreutils and bash, and none of the
+tools below. Each run asserts what it installed and fails on a mismatch
+(`scripts/assert-toolchain.sh`, called by every job of
+`.github/workflows/proof-kernel.yml`).
+
+[cols="1,2,3,1",options="header"]
+|===
+| Leg | Tool, asserted version, digest | Why not Guix or the container | State
+
+| Agda kernel (HD-F, HD-F-R, HD-1A, HD-H, RE) and the differential test (HD-F-E)
+| `agda-bin` 2.6.3-1build1 (Agda 2.6.3), `/usr/bin/agda` sha256 `852806142a15951f667df303c73cfce5f4123218ce6e1f1b29acaddc242af00d`; no standard library (`--no-libraries`)
+| `guix.scm` provides no Agda
+| open
+
+| Differential test (HD-F-E): building the real engine
+| `ghc` 9.4.7-3, `/usr/bin/ghc-9.4.7` sha256 `00d84327aa4d93ce55a576e75ad9306f216156dd213537b5a88b23500569a83e`
+| `guix.scm` provides no GHC
+| open
+
+| TLA+ (HD-1T) and the trace replay (HD-F-E)
+| `openjdk-21-jre-headless`, Java 21, any security build: its digest is printed on each run, not pinned, because the archive rebuilds it every few weeks. TLC `tla2tools.jar` v1.7.4, sha256 `936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88`, fetched and checked by `scripts/check-tla.sh`
+| `guix.scm` provides neither Java nor TLC
+| open
+|===
+
+All three close together, by a `guix.scm` (or container) that provides these
+tools and a CI that runs in it.
 
 == Files inherited from the template
 

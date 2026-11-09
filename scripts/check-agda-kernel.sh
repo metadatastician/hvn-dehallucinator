@@ -4,7 +4,7 @@
 #
 # check-agda-kernel.sh [reject-dir]
 #
-# The Agda kernel gate (--safe --without-K --no-libraries --ignore-interfaces
+# The Agda kernel gate (--safe --without-K --cubical-compatible --no-libraries --ignore-interfaces
 # --double-check):
 #
 #   1. fetch the pinned siblings (scripts/fetch-siblings.sh);
@@ -35,7 +35,7 @@ bash scripts/check-proofs.sh agda
 
 includes=(-i verification/proofs/agda)
 for d in _build/dependencies/*/src; do [ -d "$d" ] && includes+=(-i "$d"); done
-flags=(--safe --without-K --no-libraries --ignore-interfaces --double-check)
+flags=(--safe --without-K --cubical-compatible --no-libraries --ignore-interfaces --double-check)
 
 echo
 echo "=== expected rejections ($reject_dir) ==="

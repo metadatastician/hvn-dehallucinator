@@ -67,8 +67,8 @@ while IFS= read -r line; do
   status="$(trim "${cell[3]}")"
   artefact="${cell[4]}"
   case "$status" in
-    PROVEN|TESTED|ASSUMED|DESIGNED|OPEN) ;;
-    *) bad "$id: status '$status' is not one of PROVEN TESTED ASSUMED DESIGNED OPEN"; continue ;;
+    PROVEN|PROVEN-WITH-AXIOMS|TESTED|ASSUMED|OPEN) ;;   # the closed vocabulary of standards PROOF-POLICY section 5
+    *) bad "$id: status '$status' is not one of PROVEN PROVEN-WITH-AXIOMS TESTED ASSUMED OPEN"; continue ;;
   esac
   [ "$status" = OPEN ] && continue
 

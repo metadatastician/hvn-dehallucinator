@@ -74,10 +74,11 @@ case "$PROVER" in
   coq)    CMD=coqc;   EXT=v;    ERROR_RE=''        ;;
 esac
 
-# Agda is the proof kernel: --safe --without-K, no library files, every
+# Agda is the proof kernel: --safe --without-K --cubical-compatible (the
+# invocation of standards PROOF-POLICY §2.1), no library files, every
 # interface re-checked. Siblings fetched at their pinned commits by
 # scripts/fetch-siblings.sh are on the include path; nothing else is.
-AGDA_FLAGS=(--safe --without-K --no-libraries --ignore-interfaces --double-check -i .)
+AGDA_FLAGS=(--safe --without-K --cubical-compatible --no-libraries --ignore-interfaces --double-check -i .)
 for d in "$ROOT"/_build/dependencies/*/src; do [ -d "$d" ] && AGDA_FLAGS+=(-i "$d"); done
 
 check_one() {

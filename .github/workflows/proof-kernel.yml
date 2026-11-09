@@ -5,7 +5,7 @@
 # Proof Kernel — the Agda gate, scripts/check-agda-kernel.sh:
 #   * residual-evidence-types fetched at its pin (scripts/fetch-siblings.sh);
 #   * every module in verification/proofs/agda/MANIFEST under
-#     --safe --without-K --no-libraries --ignore-interfaces --double-check;
+#     --safe --without-K --cubical-compatible --no-libraries --ignore-interfaces --double-check;
 #   * every tests/reject fixture refused at its own declaration;
 # then the gate's own negative controls, so a vacuous gate cannot stay green.
 # A second job runs the TLA+ gate, scripts/check-tla.sh: TLC at a pinned,
@@ -34,11 +34,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
+      # PROOF-POLICY section 6 deviation: Agda from the Ubuntu archive, not the
+      # Guix manifest (guix.scm carries no proof toolchain). The next step
+      # asserts the pinned version and digest and fails on a mismatch.
       - name: Install Agda (Ubuntu 24.04 archive)
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q --no-install-recommends agda-bin
-          agda --version
+      - name: Assert the pinned toolchain
+        run: bash scripts/assert-toolchain.sh agda
       - name: Agda kernel gate
         run: bash scripts/check-agda-kernel.sh
       - name: Gate refuses its negative controls
@@ -46,13 +50,21 @@ jobs:
   tla-model-check:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      JAVA: /usr/lib/jvm/java-21-openjdk-amd64/bin/java
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
-      - name: TLA+ gate (pinned TLC; the original engine must be refuted)
+      # PROOF-POLICY section 6 deviation: the Java runtime from the Ubuntu
+      # archive; the TLC jar is fetched by scripts/check-tla.sh and SHA-256 pinned.
+      - name: Install Java 21 (Ubuntu 24.04 archive)
         run: |
-          java -version
-          bash scripts/check-tla.sh
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends openjdk-21-jre-headless
+      - name: Assert the pinned toolchain
+        run: bash scripts/assert-toolchain.sh java
+      - name: TLA+ gate (pinned TLC; the original engine must be refuted)
+        run: bash scripts/check-tla.sh
   models-agree-with-engine:
     # HD-F-E: tests/difftest.sh runs the real engine over 3,183 command
     # sequences and requires EngineCore.agda (via the proof kernel) and
@@ -63,15 +75,16 @@ jobs:
     env:
       LC_ALL: C.UTF-8
       LANG: C.UTF-8
+      JAVA: /usr/lib/jvm/java-21-openjdk-amd64/bin/java
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
-      - name: Install GHC and Agda (Ubuntu 24.04 archive)
+      # PROOF-POLICY section 6 deviation, as in the jobs above.
+      - name: Install GHC, Agda and Java 21 (Ubuntu 24.04 archive)
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends ghc agda-bin
-          ghc --version
-          agda --version
-          java -version
+          sudo apt-get install -y -q --no-install-recommends ghc agda-bin openjdk-21-jre-headless
+      - name: Assert the pinned toolchain
+        run: bash scripts/assert-toolchain.sh agda ghc java
       - name: Differential test (models against the engine)
         run: bash tests/difftest.sh

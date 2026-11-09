@@ -20,7 +20,16 @@
 (* attempt is charged and no measurement is taken. TLC must find the       *)
 (* Incident as a violation of Guarantee in that model (Original.cfg); the  *)
 (* gate fails if it does not.                                              *)
-(***************************************************************************)
+(*                                                                         *)
+(* PROOF-POLICY section 4 exception (metadatastician/standards,            *)
+(* 3-practice/PROOF-POLICY.adoc). Obligation: HD-1T, the engine against a  *)
+(* world that changes freely and a verifier that may fail. Tool: TLA+ and  *)
+(* TLC, instead of Idris2, the mapped prover for an engineering property.  *)
+(* Why: the property is about every interleaving of an environment the     *)
+(* engine does not control; a model checker explores those exhaustively    *)
+(* at fixed bounds, and stating them in Idris2 would take far longer.      *)
+(* A finite model check is TESTED at its bounds (MaxTotal = 3,             *)
+(* MaxRemaining = 4), not PROVEN. Recorded in the ledger, row HD-1T.       *)
 EXTENDS Naturals
 
 CONSTANTS

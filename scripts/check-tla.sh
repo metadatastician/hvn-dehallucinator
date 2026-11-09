@@ -30,7 +30,8 @@ TLA_SHA256=936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88
 jar="_build/tools/tla2tools-$TLA_VERSION.jar"
 spec_dir=verification/proofs/tlaplus
 
-command -v java >/dev/null 2>&1 || { echo "FAIL: java not found; the TLA+ gate cannot be skipped." >&2; exit 1; }
+JAVA="${JAVA:-java}"   # the pinned runtime in CI (scripts/assert-toolchain.sh java)
+command -v "$JAVA" >/dev/null 2>&1 || { echo "FAIL: $JAVA not found; the TLA+ gate cannot be skipped." >&2; exit 1; }
 
 if [ ! -f "$jar" ]; then
   mkdir -p _build/tools
@@ -55,7 +56,7 @@ trap 'rm -rf "$meta"' EXIT
 # Engine.cfg, a violation for Original.cfg.
 tlc() {
   set +e
-  (cd "$spec_dir" && java -XX:+UseParallelGC -cp "$ROOT/$jar" tlc2.TLC \
+  (cd "$spec_dir" && "$JAVA" -XX:+UseParallelGC -cp "$ROOT/$jar" tlc2.TLC \
      -config "$1" -workers 1 -metadir "$meta/$1" Engine.tla) >"$2" 2>&1
   echo $?
   set -e
