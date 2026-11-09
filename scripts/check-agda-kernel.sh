@@ -4,7 +4,7 @@
 #
 # check-agda-kernel.sh [reject-dir]
 #
-# The Agda kernel gate (--safe --without-K --no-libraries --ignore-interfaces
+# The Agda kernel gate (--safe --without-K --cubical-compatible --no-libraries --ignore-interfaces
 # --double-check):
 #
 #   1. fetch the pinned siblings (scripts/fetch-siblings.sh);
@@ -12,7 +12,9 @@
 #      via scripts/check-proofs.sh agda, which also fails on any .agda file
 #      there that the MANIFEST does not list;
 #   3. every module in the reject directory (default tests/reject) must be
-#      REFUSED, with a type-checking error at its own declaration. A missing
+#      REFUSED, with a type-checking error at its own declaration. The error
+#      must be on the one line the fixture marks `-- refused here`, the
+#      counterexample, so a fixture cannot pass on an incidental stuck term. A missing
 #      import, an unsolved meta or a parse error is a broken fixture, not a
 #      rejection, and fails the gate (the residual-evidence-types rule).
 #
@@ -35,7 +37,7 @@ bash scripts/check-proofs.sh agda
 
 includes=(-i verification/proofs/agda)
 for d in _build/dependencies/*/src; do [ -d "$d" ] && includes+=(-i "$d"); done
-flags=(--safe --without-K --no-libraries --ignore-interfaces --double-check)
+flags=(--safe --without-K --cubical-compatible --no-libraries --ignore-interfaces --double-check)
 
 echo
 echo "=== expected rejections ($reject_dir) ==="
@@ -63,6 +65,19 @@ for file in "${rejects[@]}"; do
     echo "FAIL: unexpected failure while checking $name (not a type error at its declaration)" >&2
     exit 1
   fi
-  echo "  PASS: refused $name at $(grep -Eo "/$name\.agda:[0-9]+,[0-9-]+" "$log" | head -1 | sed 's#^/##')"
+  # The refusal must land on the line the fixture marks `-- refused here`: the
+  # counterexample, not an incidental stuck term elsewhere in the fixture.
+  want="$(grep -n -- '-- refused here' "$file" | cut -d: -f1 || true)"
+  got="$(grep -Eo "/$name\.agda:[0-9]+" "$log" | head -1 | sed 's#.*:##' || true)"
+  if [ "$(printf '%s\n' "$want" | grep -c .)" -ne 1 ]; then
+    echo "FAIL: $name must mark exactly one line '-- refused here'" >&2
+    exit 1
+  fi
+  if [ "$got" != "$want" ]; then
+    cat "$log"
+    echo "FAIL: $name was refused at line $got, not at its marked line $want" >&2
+    exit 1
+  fi
+  echo "  PASS: refused $name at $(grep -Eo "/$name\.agda:[0-9]+,[0-9-]+" "$log" | head -1 | sed 's#^/##'), its marked line"
 done
 echo "RESULT: PASS -- kernel modules check; all ${#rejects[@]} expected rejection(s) refused"

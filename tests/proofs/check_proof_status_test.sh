@@ -34,12 +34,14 @@ expect() { # expect <name> <want-exit> <file> [root]
 echo "== positive controls =="
 expect "well-formed ledger, OPEN row may name a planned path" 0 \
   "$(ledger ok '| X-1 | holds | PROVEN | `a/b.agda#alpha-lemma`' '| X-2 | later | OPEN | planned `x/y.agda`')"
+expect "PROVEN-WITH-AXIOMS is in the vocabulary"   0 "$(ledger axioms '| X-1 | holds | PROVEN-WITH-AXIOMS | `a/b.agda#alpha-lemma`')"
 expect "the repository's own PROOF-STATUS.adoc" 0 "$REPO_ROOT/docs/status/PROOF-STATUS.adoc" "$REPO_ROOT"
 
 echo "== negative controls (each must be refused) =="
 expect "non-OPEN row names a missing file"       1 "$(ledger missing '| X-1 | holds | TESTED | `a/nope.sh`')"
 expect "non-OPEN row names a missing fragment"   1 "$(ledger frag '| X-1 | holds | PROVEN | `a/b.agda#beta-lemma`')"
 expect "status outside the five"                 1 "$(ledger status '| X-1 | holds | PROVED | `a/b.agda`')"
+expect "DESIGNED is outside the closed vocabulary" 1 "$(ledger designed '| X-1 | holds | DESIGNED | `a/b.agda`')"
 expect "non-OPEN row names no repo path"         1 "$(ledger nopath '| X-1 | holds | TESTED | a lemma called `Core.from-to`')"
 expect "row with three cells"                    1 "$(ledger cells '| X-1 | holds | `a/b.agda`')"
 printf '= Fixture\n\nNo ledger here.\n' > "$WORK/noledger.adoc"

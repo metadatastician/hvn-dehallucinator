@@ -66,8 +66,10 @@ across the tree, validates the result, and (if available) runs the `k9-svc` chec
   in a2ml, so tools and agents can read the project's state and boundaries.
 * *AI gatekeeper protocol* — `0-AI-MANIFEST.a2ml` is the universal entry point that
   tells an AI agent how to work in this repo before it touches anything.
-* *Typed ABI/FFI seam* — `src/interface/Abi/` (Idris2 type + layout proofs) over
-  `src/interface/ffi/` (Zig implementation), with generated C headers.
+* *Typed ABI/FFI seam (template, not yet verified here)* — `src/interface/Abi/`
+  (Idris2 types and layout statements from the template) over
+  `src/interface/ffi/` (Zig implementation), with generated C headers. Their
+  proofs are OPEN: rows ABI-1..5 of `docs/status/PROOF-STATUS.adoc`, HDH-02 (#29).
 * *CI/CD* — GitHub Actions for quality, security (CodeQL, Scorecard, secret
   scanning), multi-forge mirroring, and RSR anti-pattern enforcement.
 * *Supply-chain & reproducibility* — container layering (stapeln), Guix shells,
@@ -128,18 +130,27 @@ The fix is a *Harvard architecture*: separate the two memories.
 |===
 
 Task state lives in `state/state.txt`. Progress is measured by
-`engine/verify_register.sh`. The agent may _request_ a re-measurement; it may
-not _supply_ the result.
+`engine/verify_register.sh`, run on the target directory bound when the
+baseline was set. The agent may _request_ a re-measurement; it may not
+_supply_ the result, and it may not choose what is measured.
 
 == The Guarantee
 
-*`completed` and `status` are only ever derived from the verifier. There is no
-code path from a command-line argument to the string `COMPLETE`.*
+*`completed` and `status` are only ever derived from the verifier, run on the
+bound target. There is no code path from a command-line argument to the string
+`COMPLETE`.*
 
 This is the whole point of the project, and it is the thing the original
 implementation did not do — see <<The Incident (2026-08-23/24)>> below.
 
-* `update <targetdir>` runs the verifier and derives `remaining` from its output.
+* The target is bound at the baseline: `init <total> <targetdir>` and
+  `init-from <targetdir>` record its canonical path in the state file.
+  `update` and `verify` take no argument and measure only that directory, so
+  an agent cannot point the verifier at an empty one. (Until 2026-11-09,
+  `update <targetdir>` measured whatever directory it was given.) Binding a
+  different target is the deliberate reset, and the engine announces it.
+* `update` runs the verifier and derives `remaining` from its output: a
+  natural number, or no count at all.
 * `COMPLETE` is reachable only when the verifier itself returns `0`.
 * If the verifier cannot run, the engine exits non-zero and writes no progress.
   A recorded `COMPLETE` is demoted to `RUNNING`, because nothing now confirms
@@ -163,12 +174,12 @@ yet proved, is in `docs/status/PROOF-STATUS.adoc`.
 
 [source,text]
 ----
-Engine init <total>           set the baseline explicitly
-Engine init-from <targetdir>  set the baseline by MEASURING the target
-Engine attempt                record an attempt (arms the circuit breaker)
-Engine update <targetdir>     re-measure and record progress
-Engine verify <targetdir>     print the measured count; no state change
-Engine status                 print current state
+Engine init <total> <targetdir>  set the baseline explicitly; bind the target
+Engine init-from <targetdir>     set the baseline by MEASURING the target; bind it
+Engine attempt                   record an attempt (arms the circuit breaker)
+Engine update                    re-measure the bound target and record progress
+Engine verify                    print the bound target's count; no state change
+Engine status                    print current state, the bound target included
 ----
 
 Run with `runghc engine/Engine.hs <command>` (needs only GHC — `process`,
@@ -178,16 +189,20 @@ Run with `runghc engine/Engine.hs <command>` (needs only GHC — `process`,
 The repo root is found by walking up from the working directory, or from
 `$HARVARD_ROOT`. The engine is not cwd-dependent.
 
-Exit codes: `0` ok · `1` bad state/usage · `2` usage · `3` circuit breaker
-tripped · `4` verification could not be obtained.
+Exit codes: `0` ok · `1` bad state, bad argument value or stopped engine ·
+`2` usage · `3` circuit breaker tripped · `4` verification could not be
+obtained (by `update` or by `verify`).
 
 === State file
 
-`state/state.txt`, four positional lines: `totalItems`, `completed`,
-`attempts`, `status`. Status is one of `RUNNING`, `COMPLETE`,
-`EMERGENCY_STOP`. Writes are atomic (temp + rename) and newlines in `status`
-are flattened, because the layout is positional and a stray newline used to
-corrupt the file permanently.
+`state/state.txt`, five positional lines: `totalItems`, `completed`,
+`attempts`, `status`, `target`. Counts are natural numbers, `completed` is at
+most `totalItems`, and `totalItems` is at most 10^12. Status is one of
+`RUNNING`, `COMPLETE`, `EMERGENCY_STOP`. `target` is the canonical absolute
+path bound at the baseline. A file that breaks any of these is refused with
+the field named, never acted on. A four-line file from before the target was
+bound is refused too: set the baseline again with `init-from`. Writes are
+atomic (temp + rename).
 
 === The circuit breaker
 

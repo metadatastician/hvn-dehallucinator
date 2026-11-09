@@ -27,6 +27,16 @@
 -- The Epi pair and the refuting reading are positive data and need no such
 -- premise to exhibit; pre-flight-witness re-reads the pair as Fibre
 -- candidates under the record alone.
+--
+-- PROOF-POLICY section 4 exception (metadatastician/standards,
+-- 3-practice/PROOF-POLICY.adoc, owner decision 2026-11-09). Obligation: HD-H
+-- applied to the Incident. The context is Engine.hs's record, so section 1
+-- makes these statements engineering, whose mapped prover is Idris2. Tool:
+-- Agda, because they instantiate Haruspex and Fibre, which rest on
+-- residual-evidence-types' Agda Core by pin; Idris2 cannot import that Core.
+-- Recorded in docs/status/PROOF-STATUS.adoc. Checked by
+-- scripts/check-agda-kernel.sh under --safe --without-K --cubical-compatible
+-- --no-libraries --ignore-interfaces --double-check.
 
 module HaruspexIncident where
 

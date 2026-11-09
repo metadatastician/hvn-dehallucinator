@@ -25,6 +25,10 @@
 -- (to-finite / from-finite): the listing assumption is the checker's InRange,
 -- so the two evidence contexts admit the same worlds, and the certified
 -- checker's own lemmas (ResidualEvidence.Finite.Soundness) apply to them.
+--
+-- Theory (PROOF-POLICY section 1): a correspondence between two checkers, not
+-- a statement about this engine. Agda is the mapped prover; the Rocq and Lean
+-- recheck legs are recorded in docs/status/PROOF-STATUS.adoc.
 
 module HaruspexExplorer where
 

@@ -81,6 +81,12 @@ verdict, with the same names, stated in the same Core vocabulary (`Candidate`,
 | `no-candidate` | `Empty(witness)` | `no-candidate-sound`: a value asked of a context with no case at all
 |===
 
+A candidate is a reading the schema lists, so "every candidate" in this table
+means every listed reading that fits; the paragraph after the next says how a
+verdict reaches the actual context. `sound-given` and `sound-given-query` close
+the table at the level of the answer: when a certificate exists, `decide`
+answers `Sound`, so `Epi` and `Empty` are never given where `Sound` was due.
+
 The generic lemmas do not reduce to the certified checker's own, which are
 fixed to its integer worlds. The tie is `HaruspexExplorer`: the certified
 checker's model, declared as a Haruspex schema, gives the same candidates in the

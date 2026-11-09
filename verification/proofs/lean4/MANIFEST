@@ -2,3 +2,4 @@
 # Format: <source-root>|<module-relative-to-source-root>|gated|quarantine|<note>
 # Ground-truthed 2026-07-17 with Lean leanprover/lean4:v4.15.0 (via elan).
 verification/proofs/lean4|ApiTypes.lean|quarantine| ApiTypes.lean:44 `Nat.zero_le max` application type mismatch — `max` used where Nat is expected; has never compiled
+verification/proofs/lean4|Haruspex.lean|gated| Lean recheck leg of Haruspex (re-proved); 2026-11-09 with Lean 4.15.0; scripts/check-recheck-legs.sh also requires every #print axioms empty
