@@ -20,16 +20,16 @@ workflows:
     '.github/workflows/estate-rules.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/governance.yml':
-        - 'hyperpolymath/standards@75bd5994470661a099df562d6d5ad2fe744dbd66'
+        - 'metadatastician/standards@b8f60511e76c9015d86990317162dce653c92fe1'
     '.github/workflows/guix-policy.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/hypatia-scan.yml':
-        - 'hyperpolymath/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
+        - 'metadatastician/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
     '.github/workflows/label-triage.yml': []
     '.github/workflows/labels.yml': []
     '.github/workflows/lock-sync-gate.yml': []
     '.github/workflows/mirror.yml':
-        - 'hyperpolymath/standards@75bd5994470661a099df562d6d5ad2fe744dbd66'
+        - 'metadatastician/standards@75bd5994470661a099df562d6d5ad2fe744dbd66'
     '.github/workflows/openssf-compliance.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/pages.yml':
@@ -54,9 +54,9 @@ workflows:
     '.github/workflows/runtime-policy.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/rust-ci.yml':
-        - 'hyperpolymath/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
+        - 'metadatastician/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
     '.github/workflows/scorecard.yml':
-        - 'hyperpolymath/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
+        - 'metadatastician/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
     '.github/workflows/secret-scanner.yml':
         - 'metadatastician/standards@b8f60511e76c9015d86990317162dce653c92fe1'
     '.github/workflows/security-policy.yml':
@@ -209,10 +209,10 @@ dependencies:
         commit: 'sha1-89f3c2702f4f650a92aa7411502f38da06abd562'
         owner_id: 6759885
         repo_id: 1275650185
-    'hyperpolymath/standards@75bd5994470661a099df562d6d5ad2fe744dbd66':
+    'metadatastician/standards@75bd5994470661a099df562d6d5ad2fe744dbd66':
         ref: '75bd5994470661a099df562d6d5ad2fe744dbd66'
         commit: 'sha1-75bd5994470661a099df562d6d5ad2fe744dbd66'
-        owner_id: 6759885
+        owner_id: 297579217
         repo_id: 1116521501
         uses:
             - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
@@ -223,10 +223,10 @@ dependencies:
             - 'erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124'
             - 'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6'
             - 'webfactory/ssh-agent@e83874834305fe9a4a2997156cb26c5de65a8555'
-    'hyperpolymath/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4':
+    'metadatastician/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4':
         ref: 'bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
         commit: 'sha1-bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
-        owner_id: 6759885
+        owner_id: 297579217
         repo_id: 1116521501
         uses:
             - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
@@ -245,7 +245,12 @@ dependencies:
         owner_id: 297579217
         repo_id: 1116521501
         uses:
+            - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
             - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+            - 'denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed'
+            - 'editorconfig-checker/action-editorconfig-checker@51f63319f592f97930c73d9c46184d20bd206393'
+            - 'erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124'
+            - 'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6'
     'ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc':
         ref: '2d1146689b8cda280b9bc96326124645441f03bc'
         commit: 'sha1-2d1146689b8cda280b9bc96326124645441f03bc'
