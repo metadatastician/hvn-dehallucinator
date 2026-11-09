@@ -90,7 +90,7 @@ mutant() { # mutant <name> <sed-expression>: engine drift must be caught by both
 }
 mutant "breaker slack 6"          's/^attemptSlack = 5/attemptSlack = 6/'
 mutant "keeps COMPLETE on failed verifier" 's/st2 = if unconfirmed then st1 { status = statusRunning } else st1/st2 = st1/'
-mutant "init 0 sets total 1"      's/writeState root (State total 0 0 statusRunning)/writeState root (State (max 1 total) 0 0 statusRunning)/'
+mutant "init 0 sets total 1"      's/writeState root (State total 0 0 statusRunning t)/writeState root (State (max 1 total) 0 0 statusRunning t)/'
 
 printf '\nPASS=%s FAIL=%s\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

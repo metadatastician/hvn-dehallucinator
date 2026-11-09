@@ -17,5 +17,5 @@ open import HaruspexIncident
 -- it cannot satisfy both stated assumptions: 15272 is not 0.
 invalid : Check.Pair incidentSchema incident (measured ∷ done ∷ []) (claim done)
 invalid =
-  (((incident , incident-measured) , refl , there here , refl , refl , tt) , refl) ,
+  (((incident , incident-measured) , refl , there here , refl , refl , tt) , refl) ,   -- refused here
   (((incident , incident-measured) , refl , there here , refl , refl , tt) , refl)

@@ -30,8 +30,18 @@
 -- tests/reject/AssertedComplete.agda is the 2026-08-23/24 Incident as a
 -- refused derivation: COMPLETE from the record 16/16/0/COMPLETE alone.
 --
--- Checked by scripts/check-agda-kernel.sh with Agda 2.6.3 under
--- --safe --without-K --no-libraries --ignore-interfaces --double-check.
+-- PROOF-POLICY section 4 exception (metadatastician/standards,
+-- 3-practice/PROOF-POLICY.adoc, owner decision 2026-11-09). Obligation: HD-F,
+-- the engine's update read as a residual-evidence case. These statements
+-- name Engine.hs's state and update, so section 1 makes them engineering,
+-- whose mapped prover is Idris2. Tool: Agda, because they instantiate
+-- residual-evidence-types' Agda Core by pin; Idris2 cannot import that Core,
+-- and restating it there would duplicate the sibling and lose the tie to the
+-- checked definitions. Recorded in docs/status/PROOF-STATUS.adoc.
+--
+-- Checked by scripts/check-agda-kernel.sh with Agda 2.6.3 under --safe
+-- --without-K --cubical-compatible --no-libraries --ignore-interfaces
+-- --double-check.
 
 module Fibre where
 

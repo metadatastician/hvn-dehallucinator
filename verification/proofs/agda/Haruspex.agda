@@ -36,8 +36,13 @@
 -- the listing included (actual-sound); for a schema whose listing is complete,
 -- that premise is discharged once (listing-complete-sound).
 --
+-- Theory (PROOF-POLICY section 1): the checker and its soundness are about a
+-- declared schema in general, not about this engine; Agda is the mapped
+-- prover, and the Rocq and Lean recheck legs are recorded in the ledger.
+--
 -- Checked by scripts/check-agda-kernel.sh with Agda 2.6.3 under
--- --safe --without-K --no-libraries --ignore-interfaces --double-check.
+-- --safe --without-K --cubical-compatible
+-- --no-libraries --ignore-interfaces --double-check.
 
 module Haruspex where
 
@@ -496,6 +501,29 @@ module Check (S : Schema) where
   ... | identified   = sound (identified-case r as q e , identified-sound r as q e (identified-case r as q e))
   ... | unidentified = epi (unidentified-sound r as q e)
   ... | no-candidate = empty (no-candidate-sound r as q e)
+
+  ----------------------------------------------------------------------
+  -- Completeness of the output: whenever a certificate exists, `decide`
+  -- answers Sound. The three outputs exclude each other, so an Epi pair or
+  -- an Empty refutation would contradict the certificate.
+
+  sound-given : ∀ r as P → Certificate r as (claim P) → kind (decide r as (claim P)) ≡ Sound
+  sound-given r as P (c , holds) = by (decide r as (claim P))
+    where
+      by : (o : Output r as (claim P)) → kind o ≡ Sound
+      by (sound _)                 = refl
+      by (epi (_ , (y , no)))      = absurd (bool-clash no (holds y))
+      by (empty (inl (_ , nos)))   =
+        absurd (bool-clash (nos (Case.witness c)) (holds (Case.witness c)))
+      by (empty (inr none))        = absurd (none c)
+
+  sound-given-query : ∀ r as q → Certificate r as (query q) → kind (decide r as (query q)) ≡ Sound
+  sound-given-query r as q (c , ident) = by (decide r as (query q))
+    where
+      by : (o : Output r as (query q)) → kind o ≡ Sound
+      by (sound _)          = refl
+      by (epi (c' , pair))  = absurd (disagreeing-not-identified c' (Query.value q) pair ident)
+      by (empty none)       = absurd (none c)
 
 ------------------------------------------------------------------------
 -- The pre-flight check

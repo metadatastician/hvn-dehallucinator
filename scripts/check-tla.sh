@@ -7,15 +7,20 @@
 #   1. TLC (tla2tools.jar) is fetched at a pinned release into _build/tools and
 #      its SHA-256 checked; a mismatch deletes the jar and fails, never runs it;
 #   2. Engine.cfg — the engine as it is — must model-check with no error:
-#      TypeOK, Guarantee, Budget and CompletedBounded as invariants,
-#      CompleteOnlyFromZeroCount and StopTerminal as properties;
+#      TypeOK, Guarantee, MeasuresTheTarget, GuaranteeBound, Budget and
+#      CompletedBounded as invariants, CompleteOnlyFromZeroCount and
+#      StopTerminal as properties;
 #   3. Original.cfg — the same model plus the root-commit engine's
 #      caller-asserted `update <remaining>` — must FAIL with Guarantee
 #      violated. That is the Incident as a counterexample, and the negative
-#      control: a gate whose model cannot fail is not checking anything.
+#      control: a gate whose model cannot fail is not checking anything;
+#   4. OtherTarget.cfg — the model plus `update <dir>` on a directory the
+#      caller chose (the engine before 2026-11-09) — must FAIL with
+#      GuaranteeBound violated: a real measured zero, but not the bound
+#      target's. Guarantee alone does not see it.
 #
 # Needs java and curl (or a jar already in _build/tools). Exit 0 only when
-# both hold.
+# all three hold.
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 ROOT="$PWD"
@@ -83,5 +88,16 @@ if [ "$rc" -eq 0 ] || ! grep -q 'Invariant Guarantee is violated' "$log"; then
 fi
 sed -n '/The behavior up to this point is:/,/^$/p;/UpdateAsserted/,/^$/p' "$log" | sed 's/^/  /' | head -24
 echo "  PASS: Guarantee violated, as it must be"
+
 echo
-echo "RESULT: PASS -- engine model checked; original engine refuted"
+echo "=== OtherTarget.cfg: update measuring a caller-chosen directory (negative control) ==="
+log="$meta/othertarget.log"; rc="$(tlc OtherTarget.cfg "$log")"
+if [ "$rc" -eq 0 ] || ! grep -q 'Invariant GuaranteeBound is violated' "$log"; then
+  cat "$log"
+  echo "FAIL: the caller-chosen target was not refuted; the model cannot see which directory was measured" >&2
+  exit 1
+fi
+sed -n '/The behavior up to this point is:/,/^$/p;/UpdateOtherTarget/,/^$/p' "$log" | sed 's/^/  /' | head -24
+echo "  PASS: GuaranteeBound violated, as it must be"
+echo
+echo "RESULT: PASS -- engine model checked; original engine and caller-chosen target refuted"

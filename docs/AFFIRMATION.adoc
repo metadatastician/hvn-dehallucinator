@@ -141,6 +141,13 @@ are red, and the README is still the template's.
   command-line argument can produce `COMPLETE`. It does not show that an agent
   with write access to `state/state.txt` or to `engine/verify_register.sh`
   cannot forge it.
++
+*Erratum, 2026-11-09:* that sentence was false at the anchor commit. There,
+`update <dir>` measured whatever directory the caller named, so
+`update <an empty directory>` gave a measured zero, and so `COMPLETE`, for a
+target that still held work. The suite did not test it. The engine now binds
+the target at the baseline, and `update` takes no argument (proof ledger,
+HD-G2, `docs/status/PROOF-STATUS.adoc`). The rest of this record is unchanged.
 * *The ABI and the proofs are template material.* `src/interface/Abi/` and
   `verification/proofs/` came from `rsr-template-repo`, and the Coq file says
   "Replace with your project's type system proofs". A green build of them is
