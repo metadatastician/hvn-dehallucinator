@@ -8,9 +8,10 @@
 #
 #   locating   the root is found from HARVARD_ROOT or by climbing, never cwd-relative
 #   parsing    a malformed state file is refused with the field named, never crashes
-#   writing    writes are atomic and the state file stays four lines
+#   writing    writes are atomic and the state file stays five lines
 #   arguments  bad command lines are refused with the documented exit codes
-#   verifier   a verifier that misbehaves is never read as a count
+#   verifier   a verifier that misbehaves (garbage, a negative count, a crash)
+#              is never read as a count, by update or by verify
 #   read-only  verify and status never write
 #   breaker    EMERGENCY_STOP refuses work until a deliberate init
 #   pruning    verify_register.sh prunes vendored trees and nothing else
@@ -23,7 +24,6 @@ command -v runghc >/dev/null 2>&1 || {
     echo "FAIL: runghc not found; the engine cannot be exercised." >&2
     exit 1
 }
-
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -37,6 +37,7 @@ export HARVARD_ROOT="$WORK/root"
 ENGINE="runghc $WORK/root/engine/Engine.hs"
 STATE="$WORK/root/state/state.txt"
 mkdir -p "$WORK/clean/src" "$WORK/empty" "$WORK/nowhere"
+C="$(cd "$WORK/clean" && pwd -P)"
 
 pass=0; fail=0
 chk() { # chk <name> <got> <want>
@@ -49,9 +50,9 @@ echo "== locating =="
 out="$(HARVARD_ROOT="$WORK/empty" $ENGINE status 2>&1)"; rc=$?
 chk "HARVARD_ROOT at a non-checkout is refused (exit 1)" "$rc" "1"
 chk "  ... and the variable is named"                    "$(has "$out" "HARVARD_ROOT is not")" "1"
-$ENGINE init 7 >/dev/null 2>&1
+$ENGINE init 7 "$WORK/clean" >/dev/null 2>&1
 out="$(cd "$WORK/root/state" && env -u HARVARD_ROOT runghc "$WORK/root/engine/Engine.hs" status 2>&1)"
-chk "root found by climbing from a subdirectory"         "$out" "RUNNING  0/7 (attempts 0)"
+chk "root found by climbing from a subdirectory"         "$out" "RUNNING  0/7 (attempts 0)  target $C"
 out="$(cd "$WORK/nowhere" && env -u HARVARD_ROOT runghc "$WORK/root/engine/Engine.hs" status 2>&1)"; rc=$?
 chk "no root above the working directory: exit 1"        "$rc" "1"
 
@@ -61,57 +62,76 @@ out="$($ENGINE status 2>&1)"; rc=$?
 chk "missing state file: exit 1"                         "$rc" "1"
 chk "  ... and says to run init"                         "$(has "$out" "no state file")" "1"
 printf '7\n0\n0\n' > "$STATE"
-chk "three lines: names the expected four"              "$(has "$($ENGINE status 2>&1)" "expected 4 lines")" "1"
-printf '7\nx\n0\nRUNNING\n' > "$STATE"
-chk "non-integer completed is named"                     "$(has "$($ENGINE status 2>&1)" "completed: not an integer")" "1"
-printf '7\n0\n1.5\nRUNNING\n' > "$STATE"
-chk "non-integer attempts is named"                      "$(has "$($ENGINE status 2>&1)" "attempts: not an integer")" "1"
-printf '7\n0\n0\n   \n' > "$STATE"
-chk "blank status is refused"                            "$(has "$($ENGINE status 2>&1)" "status: empty")" "1"
-printf '  7 \n 0\n0  \n RUNNING \n' > "$STATE"
-chk "padded fields are trimmed, not refused"             "$($ENGINE status 2>&1)" "RUNNING  0/7 (attempts 0)"
+chk "three lines: names the expected five"               "$(has "$($ENGINE status 2>&1)" "expected 5 lines")" "1"
+printf '7\nx\n0\nRUNNING\n%s\n' "$C" > "$STATE"
+chk "non-natural completed is named"                     "$(has "$($ENGINE status 2>&1)" "completed: not a natural number")" "1"
+printf '7\n0\n1.5\nRUNNING\n%s\n' "$C" > "$STATE"
+chk "non-natural attempts is named"                      "$(has "$($ENGINE status 2>&1)" "attempts: not a natural number")" "1"
+printf '7\n-1\n0\nRUNNING\n%s\n' "$C" > "$STATE"
+chk "a negative field is refused"                        "$(has "$($ENGINE status 2>&1)" "completed: not a natural number")" "1"
+printf '7\n0\n0\n   \n%s\n' "$C" > "$STATE"
+chk "blank status is refused"                            "$(has "$($ENGINE status 2>&1)" "status: not one of")" "1"
+printf '7\n0\n0\nRUNNING\nclean\n' > "$STATE"
+chk "a relative target is refused"                       "$(has "$($ENGINE status 2>&1)" "target: not an absolute path")" "1"
+printf '7\n0\n0\nCOMPLETE\n%s\r\n' "$C" > "$STATE"; cp "$STATE" "$WORK/crlf.before"
+chk "a CRLF-edited target is refused"                   "$(has "$($ENGINE status 2>&1)" "target: contains a control character")" "1"
+$ENGINE update >/dev/null 2>&1; rc=$?
+chk "  ... update refuses it before charging (exit 1)"   "$rc $(cmp -s "$STATE" "$WORK/crlf.before" && echo same)" "1 same"
+printf '  7 \n 0\n0  \n RUNNING \n%s\n' "$C" > "$STATE"
+chk "padded fields are trimmed, not refused"             "$($ENGINE status 2>&1)" "RUNNING  0/7 (attempts 0)  target $C"
 
 echo "== writing =="
-$ENGINE init 5 >/dev/null 2>&1
+$ENGINE init 5 "$WORK/clean" >/dev/null 2>&1
 chk "no temporary file is left behind"                   "$(ls "$WORK/root/state")" "state.txt"
-$ENGINE update "$WORK/clean" >/dev/null 2>&1
-chk "the state file stays four lines"                    "$(wc -l < "$STATE" | tr -d ' ')" "4"
+$ENGINE update >/dev/null 2>&1
+chk "the state file stays five lines"                    "$(wc -l < "$STATE" | tr -d ' ')" "5"
 
 echo "== arguments =="
-$ENGINE init -1 >/dev/null 2>&1;      chk "init with a negative total: exit 1"   "$?" "1"
-$ENGINE init twelve >/dev/null 2>&1;  chk "init with a non-number: exit 1"       "$?" "1"
+$ENGINE init -1 "$WORK/clean" >/dev/null 2>&1;      chk "init with a negative total: exit 1"   "$?" "1"
+$ENGINE init twelve "$WORK/clean" >/dev/null 2>&1;  chk "init with a non-number: exit 1"       "$?" "1"
+$ENGINE init 5 >/dev/null 2>&1;                      chk "init without a target: usage, exit 2" "$?" "2"
+$ENGINE update "$WORK/clean" >/dev/null 2>&1;        chk "update with a target: usage, exit 2"  "$?" "2"
+$ENGINE verify "$WORK/clean" >/dev/null 2>&1;        chk "verify with a target: usage, exit 2"  "$?" "2"
 $ENGINE frobnicate >/dev/null 2>&1;   chk "unknown command: usage, exit 2"       "$?" "2"
 $ENGINE >/dev/null 2>&1;              chk "no command: usage, exit 2"            "$?" "2"
 
 echo "== verifier =="
-checkout "$WORK/liar"; printf '#!/usr/bin/env bash\necho lots\n' > "$WORK/liar/engine/verify_register.sh"
-HARVARD_ROOT="$WORK/liar" runghc "$WORK/liar/engine/Engine.hs" init 3 >/dev/null 2>&1
-out="$(HARVARD_ROOT="$WORK/liar" runghc "$WORK/liar/engine/Engine.hs" update "$WORK/clean" 2>&1)"; rc=$?
+liar() { # liar <dir> <script body>: a checkout whose verifier is replaced
+    checkout "$1"; printf '#!/usr/bin/env bash\n%s\n' "$2" > "$1/engine/verify_register.sh"
+    HARVARD_ROOT="$1" runghc "$1/engine/Engine.hs" init 3 "$WORK/clean" >/dev/null 2>&1
+}
+liar "$WORK/liar" 'echo lots'
+out="$(HARVARD_ROOT="$WORK/liar" runghc "$WORK/liar/engine/Engine.hs" update 2>&1)"; rc=$?
 chk "a verifier that prints no integer: exit 4"          "$rc" "4"
-chk "  ... the attempt is charged, nothing derived"      "$(tr '\n' '/' < "$WORK/liar/state/state.txt")" "3/0/1/RUNNING/"
-checkout "$WORK/crash"; printf '#!/usr/bin/env bash\necho 0\nexit 3\n' > "$WORK/crash/engine/verify_register.sh"
-HARVARD_ROOT="$WORK/crash" runghc "$WORK/crash/engine/Engine.hs" init 3 >/dev/null 2>&1
-out="$(HARVARD_ROOT="$WORK/crash" runghc "$WORK/crash/engine/Engine.hs" update "$WORK/clean" 2>&1)"; rc=$?
+chk "  ... the attempt is charged, nothing derived"      "$(tr '\n' '/' < "$WORK/liar/state/state.txt")" "3/0/1/RUNNING/$C/"
+liar "$WORK/neg" 'echo -2'
+out="$(HARVARD_ROOT="$WORK/neg" runghc "$WORK/neg/engine/Engine.hs" update 2>&1)"; rc=$?
+chk "a verifier that prints a negative count: exit 4, completed stays within total" "$rc/$(tr '\n' '/' < "$WORK/neg/state/state.txt")" "4/3/0/1/RUNNING/$C/"
+liar "$WORK/crash" 'echo 0; exit 3'
+out="$(HARVARD_ROOT="$WORK/crash" runghc "$WORK/crash/engine/Engine.hs" update 2>&1)"; rc=$?
 chk "a verifier that prints 0 but exits non-zero: exit 4, not COMPLETE" "$rc/$(sed -n 4p "$WORK/crash/state/state.txt")" "4/RUNNING"
+HARVARD_ROOT="$WORK/crash" runghc "$WORK/crash/engine/Engine.hs" verify >/dev/null 2>&1; rc=$?
+chk "verify without a count: exit 4, as update"          "$rc" "4"
 before="$(cat "$STATE")"
 $ENGINE init-from "$WORK/absent" >/dev/null 2>&1; rc=$?
 chk "init-from an unmeasurable target: exit 1, state untouched" "$rc/$(cat "$STATE")" "1/$before"
 
 echo "== read-only =="
 before="$(cat "$STATE")"
-$ENGINE verify "$WORK/clean" >/dev/null 2>&1; $ENGINE status >/dev/null 2>&1
+$ENGINE verify >/dev/null 2>&1; $ENGINE status >/dev/null 2>&1
 chk "verify and status never write"                      "$(cat "$STATE")" "$before"
 
 echo "== breaker =="
-printf '1\n0\n7\nEMERGENCY_STOP\n' > "$STATE"
+printf '1\n0\n7\nEMERGENCY_STOP\n%s\n' "$C" > "$STATE"
 $ENGINE attempt >/dev/null 2>&1;      chk "EMERGENCY_STOP refuses attempt: exit 1" "$?" "1"
-$ENGINE init 4 >/dev/null 2>&1
-chk "init is the deliberate reset"                       "$(tr '\n' '/' < "$STATE")" "4/0/0/RUNNING/"
+$ENGINE init 4 "$WORK/clean" >/dev/null 2>&1
+chk "init is the deliberate reset"                       "$(tr '\n' '/' < "$STATE")" "4/0/0/RUNNING/$C/"
 
 echo "== pruning =="
 mkdir -p "$WORK/tree/node_modules/x" "$WORK/tree/.git/y" "$WORK/tree/repos/proven" "$WORK/tree/src/proven"
 touch "$WORK/tree/node_modules/x/A.res" "$WORK/tree/.git/y/B.res" "$WORK/tree/repos/proven/C.res" "$WORK/tree/src/proven/D.res"
-chk "vendored trees pruned, first-party src/proven counted" "$($ENGINE verify "$WORK/tree" 2>&1)" "1"
+$ENGINE init-from "$WORK/tree" >/dev/null 2>&1
+chk "vendored trees pruned, first-party src/proven counted" "$($ENGINE verify 2>&1)" "1"
 
 printf '\n%s\n' "PASS=$pass FAIL=$fail"
 [ "$fail" -eq 0 ] || exit 1

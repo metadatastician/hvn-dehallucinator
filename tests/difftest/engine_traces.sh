@@ -15,7 +15,12 @@
 #
 # Tokens:  i<n> init n | f<n> init-from, verifier counts n | ff init-from,
 #          verifier fails | at attempt | u<n> update, verifier counts n |
-#          uf update, verifier fails | v<n> verify, verifier counts n | st status
+#          uf update, verifier fails | un update, verifier prints -2 (no count) |
+#          v<n> verify, verifier counts n | vf verify, verifier fails | st status
+#
+# The target is bound by the first token (`init 2 <target>`); every update and
+# verify measures it. The exhaustive alphabet leaves out un and vf: un reaches
+# the same model branch as uf, and both appear in the random and hand traces.
 #
 # Output, one line per trace:  tok tok ...|exit,total,completed,attempts,STATUS;...
 # The verifier is a stub that prints the count in $HARVARD_ROOT/world, or exits 1
@@ -37,18 +42,20 @@ export HARVARD_ROOT="$work/root"
 root="$work/root"; T="$work/target"; E="$work/Engine"
 
 ALPHABET=(i2 i0 f0 f2 ff at u0 u1 u2 u3 uf v1 st)
-WEIGHTED=(i2 i0 i1 i3 f0 f2 f1 f3 ff at at at at at u0 u0 u1 u2 u3 uf uf v1 st)
+WEIGHTED=(i2 i0 i1 i3 f0 f2 f1 f3 ff at at at at at u0 u0 u1 u2 u3 uf uf un v1 vf st)
 
 run_token() { # run_token <token>; prints the exit code
   local t="$1" rc=0
   case "$t" in
-    i[0-9]*) timeout 20 "$E" init "${t#i}" >/dev/null 2>&1 || rc=$? ;;
+    i[0-9]*) timeout 20 "$E" init "${t#i}" "$T" >/dev/null 2>&1 || rc=$? ;;
     f[0-9]*) echo "${t#f}" > "$root/world"; timeout 20 "$E" init-from "$T" >/dev/null 2>&1 || rc=$? ;;
     ff)      echo fail     > "$root/world"; timeout 20 "$E" init-from "$T" >/dev/null 2>&1 || rc=$? ;;
     at)      timeout 20 "$E" attempt >/dev/null 2>&1 || rc=$? ;;
-    u[0-9]*) echo "${t#u}" > "$root/world"; timeout 20 "$E" update "$T" >/dev/null 2>&1 || rc=$? ;;
-    uf)      echo fail     > "$root/world"; timeout 20 "$E" update "$T" >/dev/null 2>&1 || rc=$? ;;
-    v[0-9]*) echo "${t#v}" > "$root/world"; timeout 20 "$E" verify "$T" >/dev/null 2>&1 || rc=$? ;;
+    u[0-9]*) echo "${t#u}" > "$root/world"; timeout 20 "$E" update >/dev/null 2>&1 || rc=$? ;;
+    uf)      echo fail     > "$root/world"; timeout 20 "$E" update >/dev/null 2>&1 || rc=$? ;;
+    un)      echo -2       > "$root/world"; timeout 20 "$E" update >/dev/null 2>&1 || rc=$? ;;
+    v[0-9]*) echo "${t#v}" > "$root/world"; timeout 20 "$E" verify >/dev/null 2>&1 || rc=$? ;;
+    vf)      echo fail     > "$root/world"; timeout 20 "$E" verify >/dev/null 2>&1 || rc=$? ;;
     st)      timeout 20 "$E" status >/dev/null 2>&1 || rc=$? ;;
     *) echo "engine_traces: unknown token $t" >&2; exit 2 ;;
   esac
@@ -87,6 +94,10 @@ trace i1 at at at at at at at at
 trace f1 at at at at at at at at
 trace i3 at at at at at at at at at at
 trace f3 u1 at at at at at at at at at at i3 at
+# a failed verify, and a negative count on update, in each status
+trace vf u0 vf un vf
+trace u1 un u0 un st vf
+trace at at at at at at at at vf un vf
 # 3. seeded pseudo-random
 seed=20261026; n="${DIFF_RANDOM:-300}"
 for ((k = 0; k < n; k++)); do

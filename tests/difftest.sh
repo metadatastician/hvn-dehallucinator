@@ -27,7 +27,8 @@ pass=0; fail=0
 ok()  { printf '  PASS  %s\n' "$1"; pass=$((pass + 1)); }
 bad() { printf '  FAIL  %s\n' "$1"; fail=$((fail + 1)); }
 
-for tool in ghc agda java; do
+JAVA="${JAVA:-java}"
+for tool in ghc agda "$JAVA"; do
   command -v "$tool" >/dev/null 2>&1 || { echo "FAIL: $tool not found; the differential test cannot be skipped." >&2; exit 1; }
 done
 bash scripts/fetch-siblings.sh >/dev/null || { echo "FAIL: fetch-siblings" >&2; exit 1; }
@@ -38,7 +39,7 @@ agda_check() { # agda_check <traces> -> 0: kernel accepts every lemma; 1: a lemm
   bash "$D/to_agda.sh" "$1" "$W/Diff.agda" || return 2
   local inc=(-i verification/proofs/agda -i "$W")
   for d in _build/dependencies/*/src; do [ -d "$d" ] && inc+=(-i "$d"); done
-  agda "${inc[@]}" --safe --without-K --no-libraries --ignore-interfaces "$W/Diff.agda" >"$W/agda.log" 2>&1 && return 0
+  agda "${inc[@]}" --safe --without-K --cubical-compatible --no-libraries --ignore-interfaces "$W/Diff.agda" >"$W/agda.log" 2>&1 && return 0
   grep -q " != " "$W/agda.log" && return 1   # a lemma refused: model and engine differ
   return 2                                      # anything else is a broken check, not a refusal
 }
@@ -47,7 +48,7 @@ tla_check() { # tla_check <traces> -> 0: every trace replayed; 1: some not; 3: T
   local t="$W/tla"; rm -rf "$t"; mkdir -p "$t"
   bash "$D/to_tla.sh" "$1" "$t" || return 2
   cp verification/proofs/tlaplus/Engine.tla "$D/TraceCheck.tla" "$D/TraceCheck.cfg" "$t/"
-  ( cd "$t" && java -XX:+UseParallelGC -cp "$OLDPWD/$JAR" tlc2.TLC -config TraceCheck.cfg \
+  ( cd "$t" && "$JAVA" -XX:+UseParallelGC -cp "$OLDPWD/$JAR" tlc2.TLC -config TraceCheck.cfg \
       -workers 2 -metadir "$t/m" -dump "$t/dump" -deadlock TraceCheck.tla >"$t/tlc.log" 2>&1 )
   grep -q 'Model checking completed. No error has been found.' "$t/tlc.log" || return 3
   # a trace is replayed iff some state has tid = k and ptr = its length
@@ -89,7 +90,7 @@ mutant() { # mutant <name> <sed-expression>: engine drift must be caught by both
 }
 mutant "breaker slack 6"          's/^attemptSlack = 5/attemptSlack = 6/'
 mutant "keeps COMPLETE on failed verifier" 's/st2 = if unconfirmed then st1 { status = statusRunning } else st1/st2 = st1/'
-mutant "init 0 sets total 1"      's/writeState root (State total 0 0 statusRunning)/writeState root (State (max 1 total) 0 0 statusRunning)/'
+mutant "init 0 sets total 1"      's/writeState root (State total 0 0 statusRunning t)/writeState root (State (max 1 total) 0 0 statusRunning t)/'
 
 printf '\nPASS=%s FAIL=%s\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

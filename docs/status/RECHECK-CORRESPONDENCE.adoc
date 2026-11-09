@@ -1,0 +1,164 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
+= Recheck correspondence — Haruspex in Rocq and Lean
+:revdate: 2026-11-09
+:toc: preamble
+
+The record standards PROOF-POLICY §2 and §2.2 ask for. It covers the
+Haruspex theory theorems, `verification/proofs/agda/Haruspex.agda` (module
+`Haruspex.Check`) and `verification/proofs/agda/HaruspexExplorer.agda`, and
+their recheck legs:
+
+* Rocq: `verification/proofs/coq/Haruspex.v`;
+* Lean: `verification/proofs/lean4/Haruspex.lean`.
+
+Both legs are *re-proved*. No Agda → Dedukti transport was tried. The pinned
+Lambdapi release has no Lean exporter, so a transported Lean leg was not
+possible. A transported Rocq leg was not attempted.
+
+Each re-proof restates the Agda definitions clause for clause, and the
+residual-evidence-types Core they rest on, at
+`97244f5cb63bd6697caff261b187b62e9788b692`. Each theorem is then stated with
+the same hypotheses and conclusion. `scripts/check-recheck-legs.sh` checks
+both legs, and fails on any axiom, `sorry` or admitted lemma. Its negative
+controls are in `tests/proofs/recheck_legs_test.sh`.
+
+== Status of the correspondence
+
+[cols="1,1,1,2",options="header"]
+|===
+| Leg | §5 token | §2.2 state | Why
+
+| Agda (source) | PROVEN | AGDA-VERIFIED
+| `scripts/check-agda-kernel.sh`, under the §2.1 invocation.
+
+| Rocq | PROVEN | BRIDGE-PENDING
+| The kernel accepts every theorem, and none rests on an assumption. The
+statements were compared with Agda's by reading, side by side (below), by the
+same agent that wrote them. Under the estate's rule that statement
+equivalence is not left to a language model alone, that comparison is
+provisional until the owner reviews it.
+
+| Lean | PROVEN | BRIDGE-PENDING
+| As for Rocq.
+|===
+
+Until a leg is RECONCILED it does not count towards a grade (§8.2), so both
+theorems stay at PWG-3. When the owner confirms the comparison below, both
+legs become RECONCILED and the theorems PWG-2ii.
+
+== Toolchains and invocations
+
+[cols="1,2,2",options="header"]
+|===
+| Prover | Version | Invocation and observed result
+
+| Agda | 2.6.3 (agda-bin 2.6.3-1build1) | `agda --safe --without-K --cubical-compatible --no-libraries --ignore-interfaces --double-check`; accepted
+| Rocq | coqc 8.18.0 (Ubuntu `coq` 8.18.0+dfsg-1build2, OCaml 4.14.1) | `coqc Haruspex.v`; 27 of 27 `Print Assumptions` report "Closed under the global context"
+| Lean | 4.15.0 (`lean-4.15.0-linux.tar.zst`, sha256 `af71a2569a9f68337de2434829b3008cd8e32c436e9cb6bd8c84a2c2ba3585c9`) | `lean Haruspex.lean`; every `#print axioms` reports "does not depend on any axioms"
+|===
+
+No library beyond each prover's core: the Rocq leg imports `List` and `Bool`
+from the standard library's `Init`-level modules, and the Lean leg imports
+nothing. There is no Mathlib or Batteries.
+
+== Translation
+
+The same Agda construct is always rendered the same way.
+
+[cols="1,2,2",options="header"]
+|===
+| Agda | Rocq | Lean
+
+| `Set` (the sort of data and of evidence)
+| `Type`; `Prop` statements enter by cumulativity
+| `Type`; `Prop` statements enter `Type`-valued contexts by `PLift` (Lean has no cumulativity)
+
+| `_≡_`
+| `eq` (in `Prop`)
+| `Eq` (in `Prop`)
+
+| `Σ`, `_×_`, `_⊎_`, `⊥`, `¬ A`
+| `sigT`, `prod`, `sum`, `False`, `A -> False`
+| `Sigma` or `PSigma`, `Prod`, `PProd` or `And`, `PSum`, `False`, `A → False`
+
+| `_∈_` (`here`, `there`), proof-relevant
+| inductive `mem` in `Type`, same constructors
+| inductive `Mem` in `Type`, same constructors
+
+| `Candidate`, `Case` (`inhabited`, `witness`), `Holds`, `Identified`, `Refuted`, `Disagreeing`, `Ctx`, `⟦_⟧`
+| the same names; `⟦_⟧` is `denote`
+| the same names; `⟦_⟧` is `denote`; `Holds` is polymorphic in the sort of its predicate, as Agda's is in its level
+
+| `_∧_`, `_∨_`, `not` of `Finite.Checker`
+| `andb`, `orb`, `negb` (the same defining clauses)
+| `&&`, `\|\|`, `!` (the same defining clauses)
+
+| `Schema` (`_≟_`, `≟-sound`, `≟-complete`), `Query` (`_==_`, …)
+| `Record`, fields `eqb_shown`, `eqb_shown_sound`, … and `eqb_value`, …
+| `structure`, fields `eqbShown`, `eqbShown_sound`, … and `eqbValue`, …
+
+| `with e in eq` in `decide`
+| a dependent `match … return … = v -> …` applied to `eq_refl`
+| `match e : … with`
+
+| `Agda.Builtin.Int` (`pos`, `negsuc`), `Nat` `_==_`, `_<_`
+| own `ZInt`, `natEqb`, `natLtb`, with Agda's clauses
+| own `ZInt`, `natEqb`, `natLtb`, with Agda's clauses
+
+| `latentsFrom` / `latentsStep` (mutual)
+| one `Fixpoint`, `latentsStep` inlined as an `if` on the same test
+| the same inlining. A `mutual` pair would be compiled by well-founded recursion, which brings in `propext` and `Quot.sound`
+
+| an identifier with `-`, `∈`, `′`
+| `_` for `-`; `∈-candidate` is `mem_candidate`, `candidate-∈` is `candidate_mem`
+| as in Rocq
+
+| the reserved word `as` (Rocq)
+| the assumption list is named `asm`
+| `asm`, for symmetry
+|===
+
+== Statements
+
+Each row was compared hypothesis by hypothesis and conclusion by conclusion,
+under the translation above.
+
+[cols="2,2,3",options="header"]
+|===
+| Agda (`Haruspex.Check`, `HaruspexExplorer`) | Rocq / Lean | Notes
+
+| `holdsAll-sound`, `holdsAll-complete` | `holdsAll_sound`, `holdsAll_complete` | identical
+| `candidate-∈` | `candidate_mem` | identical: every Core candidate of the prompt is in the enumeration
+| `∈-candidate` | `mem_candidate` | identical; both legs also prove the candidate's reading is the one given (`mem_candidate_fst` in Rocq, by `rfl` in Lean), which Agda gets by computation
+| `entailed-sound`, `entailed-case` | `entailed_sound`, `entailed_case` | identical
+| `refuted-sound`, `refuted-case`, `refuted-refutes`, `refuted-not-entailed` | the same names with `_` | identical
+| `unresolved-sound` | `unresolved_sound` | identical: a supporting and a counterexample candidate
+| `inconsistent-sound` | `inconsistent_sound` | identical: no case
+| `entailed-complete` | `entailed_complete` | identical
+| `identified-sound`, `identified-case`, `unidentified-sound`, `unidentified-refutes`, `no-candidate-sound`, `identified-complete` | the same names with `_` | identical
+| `actual-sound`, `listing-complete-sound` | `actual_sound`, `listing_complete_sound` | identical; `Q` ranges over `Type` (Rocq) and any sort (Lean), as Agda's over `Set`
+| `Certificate`, `Pair`, `Refutation`, `Output`, `kind`, `decide`, `haruspex` | the same | identical. In Lean the query `Refutation` is `PLift (¬ HCase)`, because the three branches must share one sort
+| `sound-given`, `sound-given-query` | `sound_given`, `sound_given_query` | identical: when a certificate exists, `decide` answers `Sound`
+| `to-finite`, `from-finite` | `to_finite`, `from_finite` | identical maps between the two evidence contexts' candidates
+| `candidates-match`, `presence-match`, `identity-match`, `outputs-match` | the same names with `_` | identical equations over the same 546 configurations (`allConfigs`, length 546 checked in each). Agda and Rocq decide each by one computation (`refl`; `vm_compute`). In Lean, one declaration over all 546 was killed for memory when tried (with an earlier, well-founded `latentsFrom`), so Lean decides each per residual, 13 declarations of 42 configurations by kernel reduction (`decide +kernel`, no native code). `mapL_chunks` then reassembles the same equation over `allConfigs`.
+|===
+
+== Residual assumptions
+
+None of the three legs rests on an axiom (`--safe`; `Print Assumptions`;
+`#print axioms`). What each leg trusts beyond its kernel is the same in kind:
+
+* the restated residual-evidence-types Core and finite checker are what they
+  restate. The Agda leg checks the originals at the pin; the other legs check
+  the restatements. This record is the bridge between them, and is the part
+  that is pending review;
+* Rocq's `vm_compute` decides the explorer equations with Rocq's bytecode
+  virtual machine, which is part of Rocq's trusted base;
+* Lean's `decide +kernel` uses the kernel's own reduction, not compiled code.
+
+== Revalidation
+
+Re-run this comparison, and keep the legs BRIDGE-PENDING until it is redone,
+when any of these changes: `Haruspex.agda`, `HaruspexExplorer.agda`, the
+residual-evidence-types pin, or either restating file.

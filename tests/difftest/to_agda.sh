@@ -17,7 +17,8 @@ exitc()  { case "$1" in 0) echo ok;; 1) echo refused;; 3) echo tripped;;
 cmd()    { case "$1" in
   i[0-9]*) echo "init ${1#i}";; f[0-9]*) echo "init-from (counted ${1#f})";;
   ff) echo "init-from failed";; at) echo attempt;; u[0-9]*) echo "update (counted ${1#u})";;
-  uf) echo "update failed";; v[0-9]*) echo verify;; st) echo show;;
+  uf|un) echo "update failed";; v[0-9]*) echo "verify (counted ${1#v})";;
+  vf) echo "verify failed";; st) echo show;;
   *) echo "NO-SUCH-TOKEN-$1";; esac; }
 {
   echo '{-# OPTIONS --safe --without-K #-}'

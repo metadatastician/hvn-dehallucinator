@@ -11,4 +11,4 @@ open import EngineCore
 -- (EngineCore.incident-original). In today's engine the only command that
 -- carries a number from the caller is `init`, and it writes RUNNING.
 invalid : status (after (init 0) (task 16 16 0 running)) ≡ complete
-invalid = refl
+invalid = refl   -- refused here

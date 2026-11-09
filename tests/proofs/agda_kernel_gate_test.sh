@@ -44,6 +44,18 @@ fixture scope Scope 'bad : Disagreeing-typo
 bad = incident-witness'
 expect "a fixture refused for a scope error, not a type error" 1 "unexpected failure while checking Scope" "$WORK/scope"
 
+# A genuine refusal, but not where the fixture says its counterexample is:
+# the first clause is refused (1 is not 0), the marker is on the second.
+fixture offmark Offmark 'open import Agda.Builtin.Nat using (Nat)
+bad : (n : Nat) → n ≡ 0
+bad (suc n) = refl
+bad zero    = refl   -- refused here'
+expect "a fixture refused away from its marked line" 1 "not at its marked line" "$WORK/offmark"
+
+fixture nomark Nomark 'bad : incident-measured ≡ 0
+bad = refl'
+expect "a fixture with no marked line" 1 "must mark exactly one line" "$WORK/nomark"
+
 mkdir -p "$WORK/empty"
 expect "an empty fixture set" 1 "no expected-rejection modules" "$WORK/empty"
 

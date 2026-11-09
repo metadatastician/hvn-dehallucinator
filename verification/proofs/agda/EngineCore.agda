@@ -15,7 +15,9 @@
 --   update r          refuseIfStopped; bumpOrTrip; then a count m
 --                     derives completed and status (Fibre.update), and
 --                     a failed count demotes COMPLETE (Fibre.refuse) exit 0 / 1 / 3 / 4
---   verify, status    read only                                      exit 0
+--   verify r          read only; a count exits 0, a failed reading   exit 0 / 4
+--                     exits 4 (unmeasured), as update does
+--   status            read only                                      exit 0
 --
 -- The verifier's output is a Reading: a count, or a failure. Nothing a caller
 -- types is a Reading; the engine obtains it by running the verifier. The state,
@@ -30,7 +32,8 @@
 --   attempt-trips, update-trips, stop-refuses-attempt, stop-refuses-update
 --   stop-absorbs           a stopped engine stays stopped under any run of
 --                          non-reset commands
---   verify-read-only, show-read-only, init-resets, init-from-measures,
+--   verify-read-only, verify-unmeasured, show-read-only, init-resets,
+--   init-from-measures,
 --   init-from-failed-unchanged
 --   within-preserved       the attempt budget bounds every run: a state that
 --                          is not stopped has attempts <= total + 5
@@ -39,9 +42,18 @@
 --   incident               the Incident replayed; incident-original, the
 --                          original engine writing COMPLETE from a typed 0
 --
+-- PROOF-POLICY section 4 exception (metadatastician/standards,
+-- 3-practice/PROOF-POLICY.adoc, owner decision 2026-11-09). Obligation:
+-- HD-1A, the engine's command semantics. These statements are about
+-- Engine.hs, so section 1 makes them engineering, whose mapped prover is
+-- Idris2. Tool: Agda, because the model is stated over Fibre and through it
+-- residual-evidence-types' Agda Core, pinned; Idris2 cannot import that Core.
+-- Recorded in docs/status/PROOF-STATUS.adoc.
+--
 -- Checked by scripts/check-agda-kernel.sh (residual-evidence-types pinned, via
--- Fibre). That this model matches Engine.hs is TESTED, not proved: tests/difftest.sh
--- has the kernel reproduce the real engine's recorded traces (HD-F-E).
+-- Fibre) under --safe --without-K --cubical-compatible --no-libraries. That
+-- this model matches Engine.hs is TESTED, not proved: tests/difftest.sh has
+-- the kernel reproduce the real engine's recorded traces (HD-F-E).
 
 module EngineCore where
 
@@ -97,7 +109,7 @@ data Command : Set where
   init-from : Reading → Command
   attempt   : Command
   update    : Reading → Command
-  verify    : Command
+  verify    : Reading → Command
   show      : Command
 
 -- Exit codes 0, 1, 3, 4 (2 is a usage error, outside the model).
@@ -152,7 +164,8 @@ step (init-from failed)      s = s , refused
 step attempt                 s = guarded (status s) s charged
 step (update (counted m))    s = guarded (status s) s (measured m)
 step (update failed)         s = guarded (status s) s unconfirmed
-step verify                  s = s , ok
+step (verify (counted n))    s = s , ok
+step (verify failed)         s = s , unmeasured
 step show                    s = s , ok
 
 after : Command → TaskState → TaskState
@@ -216,7 +229,8 @@ guarantee attempt (task t c a running)  e =
   inl (attempt-keeps ((t + 5) < suc a) t c a running e)
 guarantee attempt (task t c a complete) e = inl refl
 guarantee (update r) s e = inr (cong update (update-complete-only-from-zero r s e))
-guarantee verify s e = inl e
+guarantee (verify (counted n)) s e = inl e
+guarantee (verify failed)      s e = inl e
 guarantee show   s e = inl e
 
 ------------------------------------------------------------------------
@@ -310,7 +324,7 @@ stop-refuses-update failed      t c a = refl
 data Work : Command → Set where
   w-attempt : Work attempt
   w-update  : (r : Reading) → Work (update r)
-  w-verify  : Work verify
+  w-verify  : (r : Reading) → Work (verify r)
   w-show    : Work show
 
 data AllWork : List Command → Set where
@@ -326,7 +340,8 @@ stopped-fixed : {c : Command} → Work c → (t d a : Nat) →
 stopped-fixed w-attempt             t d a = refl
 stopped-fixed (w-update (counted m)) t d a = refl
 stopped-fixed (w-update failed)     t d a = refl
-stopped-fixed w-verify              t d a = refl
+stopped-fixed (w-verify (counted n)) t d a = refl
+stopped-fixed (w-verify failed)     t d a = refl
 stopped-fixed w-show                t d a = refl
 
 stop-absorbs : (cs : List Command) → AllWork cs → (t d a : Nat) →
@@ -338,8 +353,13 @@ stop-absorbs (c ∷ cs) (w ∷ ws) t d a =
 ------------------------------------------------------------------------
 -- Read-only commands and resets
 
-verify-read-only : (s : TaskState) → step verify s ≡ (s , ok)
-verify-read-only s = refl
+-- verify never writes; it exits unmeasured when no count can be taken.
+verify-read-only : (r : Reading) (s : TaskState) → after (verify r) s ≡ s
+verify-read-only (counted n) s = refl
+verify-read-only failed      s = refl
+
+verify-unmeasured : (s : TaskState) → step (verify failed) s ≡ (s , unmeasured)
+verify-unmeasured s = refl
 
 show-read-only : (s : TaskState) → step show s ≡ (s , ok)
 show-read-only s = refl
@@ -407,7 +427,8 @@ within-preserved (update (counted m)) (task t c a st) w =
   within-guarded t c a st (measured m) (measured-tot m) (measured-att m) w
 within-preserved (update failed) (task t c a st) w =
   within-guarded t c a st unconfirmed unconfirmed-tot unconfirmed-att w
-within-preserved verify s w = w
+within-preserved (verify (counted n)) s w = w
+within-preserved (verify failed)      s w = w
 within-preserved show   s w = w
 
 -- completed never exceeds totalItems.
@@ -435,7 +456,8 @@ bounded-preserved (update (counted m)) (task t c a complete) p =
 bounded-preserved (update failed) (task t c a emergency-stop) p = p
 bounded-preserved (update failed) (task t c a running)  p = bounded-tripOr ((t + 5) < suc a) t c a running  unconfirmed p p
 bounded-preserved (update failed) (task t c a complete) p = bounded-tripOr ((t + 5) < suc a) t c a complete unconfirmed p p
-bounded-preserved verify s p = p
+bounded-preserved (verify (counted n)) s p = p
+bounded-preserved (verify failed)      s p = p
 bounded-preserved show   s p = p
 
 ------------------------------------------------------------------------

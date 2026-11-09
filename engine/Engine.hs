@@ -8,13 +8,21 @@
 -- The original engine took `remaining` as a parameter, which put the progress
 -- number back inside the agent's writable space -- the exact Von Neumann
 -- collapse this project exists to prevent. That command has been removed.
+--
+-- The same collapse came back through the directory: `update <targetdir>`
+-- measured whatever directory the caller named, so measuring an empty one
+-- wrote COMPLETE while the real target was untouched (found 2026-11-09). The
+-- target is now BOUND at the baseline: `init` and `init-from` record its
+-- canonical path in the state file, and `update` and `verify` take no target
+-- and measure only the bound one. The caller chooses what to work on once,
+-- when the baseline is set, and never again.
 module Main where
 
 import Control.Exception (SomeException, try)
 import Control.Monad (when)
-import Data.Char (isSpace)
+import Data.Char (isControl, isDigit, isSpace)
 import System.Directory
-    (doesDirectoryExist, doesFileExist, getCurrentDirectory, renameFile)
+    (canonicalizePath, doesDirectoryExist, doesFileExist, getCurrentDirectory, renameFile)
 import System.Environment (getArgs, lookupEnv)
 import System.Exit (ExitCode (..), exitWith)
 import System.FilePath ((</>), takeDirectory)
@@ -29,6 +37,7 @@ data State = State
     , completed  :: Int
     , attempts   :: Int
     , status     :: String
+    , target     :: FilePath   -- canonical; the only directory ever measured
     } deriving (Show)
 
 statusRunning, statusComplete, statusStop :: String
@@ -39,6 +48,20 @@ statusStop     = "EMERGENCY_STOP"
 -- How many attempts beyond totalItems before the breaker trips.
 attemptSlack :: Int
 attemptSlack = 5
+
+-- The largest baseline accepted. It keeps totalItems + attemptSlack, and every
+-- attempt count the breaker allows, far inside Int: before this bound,
+-- `init 9223372036854775807` overflowed the breaker's sum and tripped on the
+-- first attempt.
+maxTotal :: Int
+maxTotal = 1000000000000
+
+-- A count is a natural number written in decimal digits and nothing else.
+-- `read` alone accepted "-2", and a negative count then wrote completed > total.
+natural :: String -> Maybe Int
+natural s
+    | not (null s), all isDigit s, length s <= 13 = readMaybe s
+    | otherwise = Nothing
 
 trim :: String -> String
 trim = f . f where f = reverse . dropWhile isSpace
@@ -83,19 +106,41 @@ verifierOf  root = root </> "engine" </> "verify_register.sh"
 -- Total. The original used bare `read` and `error "Corrupted State File"`,
 -- so any malformed field crashed the one component meant to be durable.
 
+-- A state file is five lines: totalItems, completed, attempts, status, target.
+-- Every field is checked, and so are the relations the engine itself keeps
+-- (completed <= totalItems <= maxTotal, attempts <= totalItems + attemptSlack + 1),
+-- so a hand-edited or truncated file is refused rather than acted on.
 parseState :: String -> Either String State
 parseState raw = case lines raw of
-    (t : c : a : s : _) ->
-        State <$> int "totalItems" t
-              <*> int "completed"  c
-              <*> int "attempts"   a
-              <*> str s
-    ls -> Left ("state file malformed: expected 4 lines, found " ++ show (length ls))
+    [t, c, a, s, p] -> do
+        st <- State <$> nat "totalItems" t
+                    <*> nat "completed"  c
+                    <*> nat "attempts"   a
+                    <*> stat s
+                    <*> path p
+        check st
+    ls -> Left ("state file malformed: expected 5 lines (total, completed, attempts, \
+                \status, target), found " ++ show (length ls)
+                ++ ". A 4-line file predates the bound target: set the baseline again \
+                   \with `init-from <targetdir>`.")
   where
-    int lbl v = maybe (Left (lbl ++ ": not an integer: " ++ show v)) Right
-                      (readMaybe (trim v))
-    str v = let v' = trim v
-            in if null v' then Left "status: empty" else Right v'
+    nat lbl v = maybe (Left (lbl ++ ": not a natural number: " ++ show v)) Right
+                      (natural (trim v))
+    stat v
+        | trim v `elem` [statusRunning, statusComplete, statusStop] = Right (trim v)
+        | otherwise = Left ("status: not one of RUNNING, COMPLETE, EMERGENCY_STOP: " ++ show v)
+    path v
+        | badTarget v = Left ("target: contains a control character: " ++ show v)
+        | take 1 v == "/" = Right v
+        | otherwise = Left ("target: not an absolute path: " ++ show v)
+    check st
+        | totalItems st > maxTotal =
+            Left ("totalItems: above the bound " ++ show maxTotal)
+        | completed st > totalItems st =
+            Left "completed: greater than totalItems"
+        | attempts st > totalItems st + attemptSlack + 1 =
+            Left "attempts: beyond what the circuit breaker allows"
+        | otherwise = Right st
 
 readState :: FilePath -> IO (Either String State)
 readState root = do
@@ -107,16 +152,33 @@ readState root = do
             raw <- readFile f
             length raw `seq` return (parseState raw)  -- force before we rewrite
 
--- Atomic, and newline-safe: a newline in `status` used to corrupt the file
--- permanently, since the 4-line layout is positional.
+-- Atomic. The layout is positional, so no field may contain a newline: status
+-- is one of three constants, and a target with a newline is refused at
+-- binding ('bindTarget').
 writeState :: FilePath -> State -> IO ()
 writeState root s = do
     let f     = stateFileOf root
         tmp   = f ++ ".tmp"
-        flat  = map (\c -> if c == '\n' || c == '\r' then ' ' else c) (status s)
     writeFile tmp (unlines [ show (totalItems s), show (completed s)
-                           , show (attempts s), flat ])
+                           , show (attempts s), status s, target s ])
     renameFile tmp f
+
+-- The directory a baseline binds: it must exist, and is stored canonical, so
+-- the state names exactly one directory however it was spelled.
+bindTarget :: FilePath -> IO (Either String FilePath)
+bindTarget dir = do
+    ok <- doesDirectoryExist dir
+    if not ok then return (Left ("target directory does not exist: " ++ dir)) else do
+        p <- canonicalizePath dir
+        return $ if badTarget p
+            then Left ("target path contains a control character: " ++ show p)
+            else Right p
+
+-- A target is one line of the positional state file, and the engine never
+-- writes one with a control character in it: binding refuses such a path, and
+-- parsing refuses a stored one (a CRLF-edited file leaves `\r` on the line).
+badTarget :: FilePath -> Bool
+badTarget = any isControl
 
 -- ----------------------------------------------------------- verifier ------
 -- The sole source of truth about progress.
@@ -132,8 +194,8 @@ runVerifier root target = do
         return $ case r of
             Left e -> Left ("verifier failed to run: " ++ show (e :: SomeException))
             Right (ExitSuccess, out, _) ->
-                maybe (Left ("verifier did not print an integer: " ++ show out))
-                      Right (readMaybe (trim out))
+                maybe (Left ("verifier did not print a natural number: " ++ show out))
+                      Right (natural (trim out))
             Right (code, _, err) ->
                 Left ("verifier exited " ++ show code ++ ": " ++ trim err)
 
@@ -152,13 +214,13 @@ describe st = "state " ++ show (completed st) ++ "/" ++ show (totalItems st)
 
 -- Regress: the record claims COMPLETE, the verifier counts more than zero.
 regressWitness :: FilePath -> State -> Int -> [String]
-regressWitness target recorded measured =
+regressWitness dir recorded measured =
     [ "WITNESS regress: the recorded state does not identify COMPLETE"
     , "  claim:    COMPLETE (remaining 0)"
     , "  recorded: remaining 0  (" ++ describe recorded ++ ")"
-    , "  measured: remaining " ++ show measured ++ "  (engine/verify_register.sh " ++ target ++ ")"
+    , "  measured: remaining " ++ show measured ++ "  (engine/verify_register.sh " ++ dir ++ ")"
     , "  Both readings fit the recorded state and disagree on the claim;"
-    , "  the measured one is written. Re-check: Engine verify " ++ target
+    , "  the measured one is written. Re-check: Engine verify"
     , "  Proof: Fibre.asserted-not-identified, Fibre.regress-refutes"
     , "         (verification/proofs/agda/Fibre.agda)"
     ]
@@ -177,7 +239,7 @@ refuseWitness recorded why =
     ] ++
     [ "  The recorded COMPLETE is demoted to RUNNING: no measurement confirms it."
     | status recorded == statusComplete ] ++
-    [ "  A count comes only from measuring a directory: Engine update <targetdir>"
+    [ "  A count comes only from measuring the bound target: Engine update"
     , "  Proof: Fibre.complete-needs-case (verification/proofs/agda/Fibre.agda)"
     ]
 
@@ -208,17 +270,50 @@ refuseIfStopped st
         die "state is EMERGENCY_STOP. Reset deliberately before continuing."
     | otherwise = return ()
 
-initExplicit :: FilePath -> Int -> IO ()
-initExplicit root total = do
-    writeState root (State total 0 0 statusRunning)
-    putStrLn $ "Initialised Harvard Engine state with " ++ show total ++ " items."
+-- A baseline replaces the state, the bound target included: that is the
+-- deliberate reset. Re-binding to a different directory is announced, so a
+-- switch of target never passes silently; `status` always shows the target.
+announceRebind :: FilePath -> FilePath -> IO ()
+announceRebind root new = do
+    exists <- doesFileExist (stateFileOf root)
+    old <- readState root
+    case old of
+        Right st | target st /= new ->
+            hPutStrLn stderr ("NOTE: target re-bound: " ++ target st ++ " -> " ++ new)
+        -- An existing state that does not parse may have named another target:
+        -- say that it is replaced, so the switch is not silent either.
+        Left e | exists ->
+            hPutStrLn stderr ("NOTE: replacing a state file that does not parse (" ++ e
+                              ++ "); the target is now " ++ new)
+        _ -> return ()
 
+-- | Set the baseline explicitly and bind the target that every later update
+-- and verify will measure. Refused (exit 1, state untouched) if the target is
+-- not an existing directory.
+initExplicit :: FilePath -> Int -> FilePath -> IO ()
+initExplicit root total dir = bindTarget dir >>= \b -> case b of
+    Left e  -> die ("cannot bind a target: " ++ e)
+    Right t -> do
+        announceRebind root t
+        writeState root (State total 0 0 statusRunning t)
+        putStrLn $ "Initialised Harvard Engine state with " ++ show total
+                 ++ " items; target bound: " ++ t
+
+-- | Set the baseline by measuring the target, and bind it. A failed
+-- measurement leaves the state untouched (exit 1).
 initMeasured :: FilePath -> FilePath -> IO ()
-initMeasured root target = runVerifier root target >>= \r -> case r of
-    Left e  -> die ("cannot set a baseline without a measurement: " ++ e)
-    Right n -> do
-        writeState root (State n 0 0 statusRunning)
-        putStrLn $ "Initialised baseline by MEASURING " ++ target ++ ": " ++ show n ++ " items."
+initMeasured root dir = bindTarget dir >>= \b -> case b of
+    Left e  -> die ("cannot bind a target: " ++ e)
+    Right t -> runVerifier root t >>= \r -> case r of
+        Left e  -> die ("cannot set a baseline without a measurement: " ++ e)
+        Right n
+            | n > maxTotal -> die ("measured " ++ show n ++ " items, above the bound "
+                                   ++ show maxTotal)
+            | otherwise -> do
+                announceRebind root t
+                writeState root (State n 0 0 statusRunning t)
+                putStrLn $ "Initialised baseline by MEASURING " ++ t ++ ": "
+                         ++ show n ++ " items; target bound."
 
 bumpAttempt :: FilePath -> IO ()
 bumpAttempt root = withState root $ \st0 -> do
@@ -238,11 +333,14 @@ bumpAttempt root = withState root $ \st0 -> do
 -- recorded COMPLETE is demoted to RUNNING, and the process exits 4. If it
 -- gives a count, progress is the total minus that remaining count (at least
 -- 0), and the status is COMPLETE exactly when the count is 0.
-updateFromVerifier :: FilePath -> FilePath -> IO ()
-updateFromVerifier root target = withState root $ \st0 -> do
+--
+-- It measures only the target bound at the baseline: the caller names no
+-- directory here, so it cannot choose what is counted.
+updateFromVerifier :: FilePath -> IO ()
+updateFromVerifier root = withState root $ \st0 -> do
     refuseIfStopped st0
     st1 <- bumpOrTrip root st0          -- every update costs an attempt
-    r <- runVerifier root target
+    r <- runVerifier root (target st0)
     case r of
         Left e -> do
             -- The attempt is still counted. A recorded COMPLETE that no
@@ -262,35 +360,40 @@ updateFromVerifier root target = withState root $ \st0 -> do
                 st2  = st1 { completed = done
                            , status = if remaining == 0 then statusComplete else statusRunning }
             writeState root st2
-            putStrLn $ "Verified " ++ target
+            putStrLn $ "Verified " ++ target st0
             putStrLn $ "  remaining (measured): " ++ show remaining
             putStrLn $ "  progress: " ++ show done ++ "/" ++ show (totalItems st2)
             putStrLn $ "  status:   " ++ status st2
             when (status st0 == statusComplete && remaining > 0) $
-                mapM_ putStrLn (regressWitness target st0 remaining)
+                mapM_ putStrLn (regressWitness (target st0) st0 remaining)
 
-verifyOnly :: FilePath -> FilePath -> IO ()
-verifyOnly root target = runVerifier root target >>= either die (putStrLn . show)
+-- | Print the bound target's current count; the state is never written. When
+-- no count can be obtained it exits 4, as `update` does.
+verifyOnly :: FilePath -> IO ()
+verifyOnly root = withState root $ \st -> runVerifier root (target st) >>= \r -> case r of
+    Left e  -> hPutStrLn stderr ("VERIFICATION FAILED: " ++ e) >> exitWith (ExitFailure 4)
+    Right n -> print n
 
 showStatus :: FilePath -> IO ()
 showStatus root = withState root $ \st -> putStrLn $
     status st ++ "  " ++ show (completed st) ++ "/" ++ show (totalItems st)
-    ++ " (attempts " ++ show (attempts st) ++ ")"
+    ++ " (attempts " ++ show (attempts st) ++ ")  target " ++ target st
 
 usage :: IO a
 usage = do
     mapM_ (hPutStrLn stderr)
         [ "Usage: Engine <command>"
-        , "  init <total>           set the baseline explicitly"
-        , "  init-from <targetdir>  set the baseline by MEASURING the target"
-        , "  attempt                record an attempt (arms the circuit breaker)"
-        , "  update <targetdir>     re-measure and record progress"
-        , "  verify <targetdir>     print the measured count; no state change"
-        , "  status                 print current state"
+        , "  init <total> <targetdir>  set the baseline explicitly; bind the target"
+        , "  init-from <targetdir>     set the baseline by MEASURING the target; bind it"
+        , "  attempt                   record an attempt (arms the circuit breaker)"
+        , "  update                    re-measure the bound target and record progress"
+        , "  verify                    print the bound target's count; no state change"
+        , "  status                    print current state"
         , ""
-        , "`update <remaining>` from the original engine has been REMOVED."
-        , "Progress cannot be asserted by a caller; it is only ever derived"
-        , "from engine/verify_register.sh."
+        , "`update <remaining>` from the original engine has been REMOVED, and so"
+        , "has `update <targetdir>`: the target is bound when the baseline is set."
+        , "Progress cannot be asserted by a caller; it is only ever derived from"
+        , "engine/verify_register.sh run on the bound target."
         ]
     exitWith (ExitFailure 2)
 
@@ -300,12 +403,13 @@ main = do
     findRoot >>= either die (`dispatch` args)
   where
     dispatch root args = case args of
-        ["init", n]           -> case readMaybe n of
-            Just t | t >= 0   -> initExplicit root t
-            _                 -> die ("init expects a non-negative integer, got " ++ show n)
-        ["init-from", target] -> initMeasured root target
+        ["init", n, dir]      -> case natural n of
+            Just t | t <= maxTotal -> initExplicit root t dir
+            _ -> die ("init expects a natural number up to " ++ show maxTotal
+                      ++ ", got " ++ show n)
+        ["init-from", dir]    -> initMeasured root dir
         ["attempt"]           -> bumpAttempt root
-        ["update", target]    -> updateFromVerifier root target
-        ["verify", target]    -> verifyOnly root target
+        ["update"]            -> updateFromVerifier root
+        ["verify"]            -> verifyOnly root
         ["status"]            -> showStatus root
         _                     -> usage

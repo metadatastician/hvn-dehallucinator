@@ -9,7 +9,7 @@
 # each row is one line `| ID | Claim | Status | Artefact`.
 #
 #   * every row has exactly four cells and a status in
-#     PROVEN | TESTED | ASSUMED | DESIGNED | OPEN;
+#     PROVEN | PROVEN-WITH-AXIOMS | TESTED | ASSUMED | OPEN (standards PROOF-POLICY section 5);
 #   * a row that is not OPEN names at least one repo path in backticks in its
 #     Artefact cell, and every backticked repo path there exists;
 #     `path#fragment` additionally requires the fixed string `fragment` to
@@ -67,8 +67,8 @@ while IFS= read -r line; do
   status="$(trim "${cell[3]}")"
   artefact="${cell[4]}"
   case "$status" in
-    PROVEN|TESTED|ASSUMED|DESIGNED|OPEN) ;;
-    *) bad "$id: status '$status' is not one of PROVEN TESTED ASSUMED DESIGNED OPEN"; continue ;;
+    PROVEN|PROVEN-WITH-AXIOMS|TESTED|ASSUMED|OPEN) ;;   # the closed vocabulary of standards PROOF-POLICY section 5
+    *) bad "$id: status '$status' is not one of PROVEN PROVEN-WITH-AXIOMS TESTED ASSUMED OPEN"; continue ;;
   esac
   [ "$status" = OPEN ] && continue
 
