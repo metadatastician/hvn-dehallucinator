@@ -20,7 +20,7 @@ module Main where
 
 import Control.Exception (SomeException, try)
 import Control.Monad (when)
-import Data.Char (isDigit, isSpace)
+import Data.Char (isControl, isDigit, isSpace)
 import System.Directory
     (canonicalizePath, doesDirectoryExist, doesFileExist, getCurrentDirectory, renameFile)
 import System.Environment (getArgs, lookupEnv)
@@ -130,6 +130,7 @@ parseState raw = case lines raw of
         | trim v `elem` [statusRunning, statusComplete, statusStop] = Right (trim v)
         | otherwise = Left ("status: not one of RUNNING, COMPLETE, EMERGENCY_STOP: " ++ show v)
     path v
+        | badTarget v = Left ("target: contains a control character: " ++ show v)
         | take 1 v == "/" = Right v
         | otherwise = Left ("target: not an absolute path: " ++ show v)
     check st
@@ -169,9 +170,15 @@ bindTarget dir = do
     ok <- doesDirectoryExist dir
     if not ok then return (Left ("target directory does not exist: " ++ dir)) else do
         p <- canonicalizePath dir
-        return $ if any (`elem` "\n\r") p
-            then Left ("target path contains a newline: " ++ show p)
+        return $ if badTarget p
+            then Left ("target path contains a control character: " ++ show p)
             else Right p
+
+-- A target is one line of the positional state file, and the engine never
+-- writes one with a control character in it: binding refuses such a path, and
+-- parsing refuses a stored one (a CRLF-edited file leaves `\r` on the line).
+badTarget :: FilePath -> Bool
+badTarget = any isControl
 
 -- ----------------------------------------------------------- verifier ------
 -- The sole source of truth about progress.
@@ -267,10 +274,18 @@ refuseIfStopped st
 -- deliberate reset. Re-binding to a different directory is announced, so a
 -- switch of target never passes silently; `status` always shows the target.
 announceRebind :: FilePath -> FilePath -> IO ()
-announceRebind root new = readState root >>= \old -> case old of
-    Right st | target st /= new ->
-        hPutStrLn stderr ("NOTE: target re-bound: " ++ target st ++ " -> " ++ new)
-    _ -> return ()
+announceRebind root new = do
+    exists <- doesFileExist (stateFileOf root)
+    old <- readState root
+    case old of
+        Right st | target st /= new ->
+            hPutStrLn stderr ("NOTE: target re-bound: " ++ target st ++ " -> " ++ new)
+        -- An existing state that does not parse may have named another target:
+        -- say that it is replaced, so the switch is not silent either.
+        Left e | exists ->
+            hPutStrLn stderr ("NOTE: replacing a state file that does not parse (" ++ e
+                              ++ "); the target is now " ++ new)
+        _ -> return ()
 
 -- | Set the baseline explicitly and bind the target that every later update
 -- and verify will measure. Refused (exit 1, state untouched) if the target is

@@ -93,6 +93,9 @@ chk "regresses out of COMPLETE"              "$(field 4)" "RUNNING"
 
 out="$($ENGINE init-from "$WORK/clean" 2>&1)"
 chk "a re-bind is announced"                 "$(printf '%s' "$out" | grep -c 'target re-bound')" "1"
+printf 'garbage\n' > "$WORK/root/state/state.txt"
+out="$($ENGINE init-from "$WORK/clean" 2>&1)"
+chk "replacing an unreadable state is announced"      "$(printf '%s' "$out" | grep -c 'replacing a state file that does not parse')" "1"
 
 echo "== circuit breaker =="
 $ENGINE init 1 "$WORK/dirty" >/dev/null 2>&1

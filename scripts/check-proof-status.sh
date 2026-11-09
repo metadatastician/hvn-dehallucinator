@@ -9,7 +9,7 @@
 # each row is one line `| ID | Claim | Status | Artefact`.
 #
 #   * every row has exactly four cells and a status in
-#     PROVEN | TESTED | ASSUMED | DESIGNED | OPEN;
+#     PROVEN | PROVEN-WITH-AXIOMS | TESTED | ASSUMED | OPEN (standards PROOF-POLICY section 5);
 #   * a row that is not OPEN names at least one repo path in backticks in its
 #     Artefact cell, and every backticked repo path there exists;
 #     `path#fragment` additionally requires the fixed string `fragment` to

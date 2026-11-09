@@ -73,6 +73,10 @@ printf '7\n0\n0\n   \n%s\n' "$C" > "$STATE"
 chk "blank status is refused"                            "$(has "$($ENGINE status 2>&1)" "status: not one of")" "1"
 printf '7\n0\n0\nRUNNING\nclean\n' > "$STATE"
 chk "a relative target is refused"                       "$(has "$($ENGINE status 2>&1)" "target: not an absolute path")" "1"
+printf '7\n0\n0\nCOMPLETE\n%s\r\n' "$C" > "$STATE"; cp "$STATE" "$WORK/crlf.before"
+chk "a CRLF-edited target is refused"                   "$(has "$($ENGINE status 2>&1)" "target: contains a control character")" "1"
+$ENGINE update >/dev/null 2>&1; rc=$?
+chk "  ... update refuses it before charging (exit 1)"   "$rc $(cmp -s "$STATE" "$WORK/crlf.before" && echo same)" "1 same"
 printf '  7 \n 0\n0  \n RUNNING \n%s\n' "$C" > "$STATE"
 chk "padded fields are trimmed, not refused"             "$($ENGINE status 2>&1)" "RUNNING  0/7 (attempts 0)  target $C"
 
