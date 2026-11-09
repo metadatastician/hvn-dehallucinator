@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
 #
-# assert-toolchain.sh <tool>...   tool in: agda | ghc | java
+# assert-toolchain.sh <tool>...   tool in: agda | ghc | java | coq | lean
 #
 # The proof toolchains are installed from the Ubuntu 24.04 archive, not from
 # the repository's Guix manifest: guix.scm is the template's and carries none
@@ -17,7 +17,11 @@
 #   java  package openjdk-21-jre-headless (any security build) and a Java 21
 #         runtime at $JAVA (default java). Its digest is printed, not pinned:
 #         the archive ships security rebuilds every few weeks.
-#
+#   coq   package coq at exactly 8.18.0+dfsg-1build2, and /usr/bin/coqc at its
+#         SHA-256 (the Rocq recheck leg);
+#   lean  Lean 4.15.0 from the upstream release archive (lean-4.15.0-linux.tar.zst,
+#         its SHA-256 checked where it is unpacked), and the lean binary at
+#         $LEAN (default lean) at its SHA-256 (the Lean recheck leg).#
 # A move of any pin is a reviewed change to this file and to the ledger.
 set -euo pipefail
 
@@ -38,7 +42,7 @@ want_sha() { # want_sha <file> <sha256>
   echo "  $1 sha256:$got"
 }
 
-[ "$#" -gt 0 ] || fail "usage: assert-toolchain.sh agda|ghc|java ..."
+[ "$#" -gt 0 ] || fail "usage: assert-toolchain.sh agda|ghc|java|coq|lean ..."
 for tool in "$@"; do
   echo "== $tool"
   case "$tool" in
@@ -58,6 +62,20 @@ for tool in "$@"; do
       [ "$major" = 21 ] || fail "$java is Java $major, pinned 21"
       bin="$(readlink -f "$(command -v "$java")")"
       echo "  $bin Java $major sha256:$(sha256sum "$bin" | cut -d' ' -f1) (printed, not pinned)"
+      ;;
+    coq)
+      want_pkg coq 8.18.0+dfsg-1build2
+      want_sha /usr/bin/coqc f14ab0c140bdfdb31c7e7e1f20379703973376480a4eea2d43d0fa56ddae03ec
+      [ "$(coqc --version | head -1)" = "The Coq Proof Assistant, version 8.18.0" ] ||
+        fail "coqc --version is not 8.18.0"
+      ;;
+    lean)
+      lean="$(command -v "${LEAN:-lean}")" || fail "${LEAN:-lean} not found"
+      want_sha "$(readlink -f "$lean")" eacf754d25ae86ea076882a34b9444f2485659d9df4266b821443b28ca95a215
+      case "$("$lean" --version)" in
+        "Lean (version 4.15.0, "*) echo "  $("$lean" --version)" ;;
+        *) fail "lean --version is not 4.15.0" ;;
+      esac
       ;;
     *) fail "unknown tool: $tool" ;;
   esac

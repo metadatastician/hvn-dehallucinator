@@ -57,7 +57,9 @@ development: an Agda checker over a declared finite schema (`Haruspex.agda`,
 HD-H). The checker is total and makes no model call, and every output is
 sound for the readings the schema lists. On the certified finite checker's own
 model it decides exactly what that checker decides. Nothing yet runs it on
-real prompts (HD-H-R, OPEN). Its grade under PROOF-POLICY §8 is recorded below.
+real prompts (HD-H-R, OPEN). Its Rocq and Lean recheck legs are re-proved with no axioms
+(HD-H-RL); their statement correspondence waits on the owner's review, so its grade
+under PROOF-POLICY §8 is PWG-3 for now (below).
 The proof files inherited from the template are not claims about this project;
 HDH-02 (#29) tracks them.
 
@@ -85,6 +87,7 @@ HDH-02 (#29) tracks them.
 | HD-F-E | The models (`Fibre.agda`, `EngineCore.agda`, `Engine.tla`) agree with `Engine.hs` | TESTED | differential, on the traces tried, not for all inputs: `tests/difftest.sh` runs the real engine over 3,186 command sequences: every 3-command sequence after `init 2`, and every one whose first command sets the baseline to 1 or 3 instead; by hand, the breaker at each baseline 0..3, regression, refusal, demotion, recovery, and verify with a failing verifier; 300 seeded random 14-command runs; totals and counts 0..3. `EngineCore.step` (and through it `Fibre.update`, `Fibre.refuse`) must reproduce each one, state and exit code, as a `refl` lemma checked by the proof kernel (`tests/difftest/to_agda.sh#t$k = refl`); TLC must replay each one with `Engine.tla`'s own actions, `init <n>` bound to the n it was given (`tests/difftest/TraceCheck.tla#TNext ==`). Controls: both refuse a corrupted observation and three engine mutants (`tests/difftest.sh#breaker slack 6`, `tests/difftest.sh#keeps COMPLETE on failed verifier`, `tests/difftest.sh#init 0 sets total 1`). CI: Proof Kernel / models-agree-with-engine. A command refused by a stopped engine is a stuttering step in `Engine.tla`, which has no action for it
 | RE | Consumed from residual-evidence-types by pin, re-checked here under `--double-check`: `Core.Candidate`, `Case`, `Holds`, `Identified`; `Revision.disagreeing-not-identified` (via `Core.different-candidates-refute-identification`), `Revision.refuted-not-holds`, `Refuted`, `Disagreeing`; `Context.Ctx`, `⟦_⟧`; `Finite.Row.Verdict`, `IdStatus`; `Finite.Checker.classify`, `enumerate`, `presence`, `identity`, `FiniteCandidate`; `Finite.Soundness.classify-entailed` and its siblings, `<-sound`, `zero-sound`. Checked, not assumed (PROOF-POLICY §1.1): the import cone is recorded below | PROVEN | `scripts/fetch-siblings.sh#97244f5cb63bd6697caff261b187b62e9788b692`, re-checked here at that pin by `scripts/check-agda-kernel.sh` (the sibling's own hosted receipt, run 36740394802, is for its earlier commit `befdf96`)
 | HD-H | Haruspex: the same check before any tokens are spent, over a declared finite schema, with no model call. `haruspex` is total and answers `Sound` / `Epi(pair)` / `Empty(witness)`. Each answer carries its proof in the Core vocabulary: a case whose every candidate satisfies the claim or has one value; two candidates that fit and disagree; or every candidate refuting, or no case at all. A candidate is a reading the schema lists that shows the record and meets the assumptions, and the enumeration produces exactly those. `Sound` is complete: when a certificate exists, `Sound` is the answer. On the certified finite checker's model it gives the same candidates, verdicts and outputs on all 546 configurations. The Incident is `Epi` with the engine's blind-spot pair. Owned by metadatastician | PROVEN | `verification/proofs/agda/Haruspex.agda#candidate-∈`, `verification/proofs/agda/Haruspex.agda#entailed-sound`, `verification/proofs/agda/Haruspex.agda#unresolved-sound`, `verification/proofs/agda/Haruspex.agda#inconsistent-sound`, `verification/proofs/agda/Haruspex.agda#entailed-complete`, `verification/proofs/agda/Haruspex.agda#identified-complete`, `verification/proofs/agda/Haruspex.agda#sound-given`, `verification/proofs/agda/Haruspex.agda#sound-given-query`, `verification/proofs/agda/Haruspex.agda#haruspex : (S : Schema)`; `verification/proofs/agda/HaruspexExplorer.agda#candidates-match`, `verification/proofs/agda/HaruspexExplorer.agda#outputs-match`; `verification/proofs/agda/HaruspexIncident.agda#confirm-is-epi`, `verification/proofs/agda/HaruspexIncident.agda#same-readings-as-the-engine`; refused fixtures `tests/reject/SoundForEpi.agda`, `tests/reject/EpiForInconsistent.agda`; design `docs/proposals/HARUSPEX.adoc#Owning organisation: metadatastician`. Grade: see the PWG records below
+| HD-H-RL | The Rocq and Lean recheck legs (PROOF-POLICY §2) of the HD-H theory theorems, `Haruspex.Check` and `HaruspexExplorer`: each restated over a restatement of the residual-evidence-types Core and finite checker, and re-proved, with no axiom in either prover. That the restated statements are the Agda ones is recorded side by side and awaits the owner's review (§2.2 BRIDGE-PENDING), so the legs do not yet count towards a grade | PROVEN | `verification/proofs/coq/Haruspex.v#Lemma sound_given`, `verification/proofs/coq/Haruspex.v#Lemma outputs_match`, `verification/proofs/lean4/Haruspex.lean#theorem sound_given`, `verification/proofs/lean4/Haruspex.lean#theorem outputs_match`; gate `scripts/check-recheck-legs.sh` in `.github/workflows/proof-kernel.yml#recheck-legs`, negative controls `tests/proofs/recheck_legs_test.sh`; correspondence `docs/status/RECHECK-CORRESPONDENCE.adoc#BRIDGE-PENDING`
 | HD-H-A | When Haruspex's verdict is applied to an actual context, the schema's listing contains the actual reading. The checker proves its verdicts for the readings the schema lists. A verdict transfers to an actual reading only with this premise, which the author of each schema discharges, or states | ASSUMED | `verification/proofs/agda/Haruspex.agda#actual-sound`, `verification/proofs/agda/Haruspex.agda#listing-complete-sound` (the premise discharged once for a schema whose listing is complete)
 | HD-H-R | A runtime harness that runs Haruspex on schemas supplied at run time and reports to the author (the Idris2 layer) | OPEN | none; `docs/proposals/HARUSPEX.adoc#The runtime harness (HD-H-R, OPEN)`
 | ABI-1..5, TP-1 | Idris2 ABI and core-type proofs | OPEN | template files under `verification/proofs/idris2/`; verdicts in its MANIFEST were taken in the template repo; HDH-02 (#29)
@@ -168,16 +171,16 @@ this file. They are not asserted.
 | 3
 | false
 | PROVEN under the §2.1 invocation; receipt: the 2026-11-09 gate run below
-| Rocq: route re-proved, OPEN, AGDA-VERIFIED. Lean: route re-proved, OPEN, AGDA-VERIFIED. No transported route: the pinned exporters were not tried
+| Rocq: route re-proved, PROVEN, BRIDGE-PENDING; receipt: the 2026-11-09 recheck run below. Lean: route re-proved, PROVEN, BRIDGE-PENDING; receipt: the same run. Not transported: the pinned Lambdapi release has no Lean exporter, and a Rocq transport was not tried
 
 | `HaruspexExplorer`: candidates-match, presence-match, identity-match, outputs-match
 | 3
 | false
 | PROVEN under the §2.1 invocation; receipt: the 2026-11-09 gate run below
-| Rocq: route re-proved, OPEN, AGDA-VERIFIED. Lean: route re-proved, OPEN, AGDA-VERIFIED
+| Rocq: route re-proved, PROVEN, BRIDGE-PENDING. Lean: route re-proved, PROVEN, BRIDGE-PENDING (decided per residual and reassembled; see the correspondence record). Receipts: the 2026-11-09 recheck run below
 |===
 
-Both owe their two recheck legs: PWG-3 does not discharge §2.
+Both legs are kernel-checked, with no axiom, in each prover. They do not count yet: the comparison of the restated statements with the Agda ones (`docs/status/RECHECK-CORRESPONDENCE.adoc`) was made by the agent that wrote them, and waits on the owner's review. When it is confirmed, both legs become RECONCILED and both theorems PWG-2ii. Until then the computed grade is PWG-3, which does not discharge §2.
 
 [[toolchain-deviations]]
 == Toolchain deviations (PROOF-POLICY §6)
@@ -207,9 +210,19 @@ tools below. Each run asserts what it installed and fails on a mismatch
 | `openjdk-21-jre-headless`, Java 21, any security build: its digest is printed on each run, not pinned, because the archive rebuilds it every few weeks. TLC `tla2tools.jar` v1.7.4, sha256 `936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88`, fetched and checked by `scripts/check-tla.sh`
 | `guix.scm` provides neither Java nor TLC
 | open
+
+| Rocq recheck leg (HD-H-RL)
+| `coq` 8.18.0+dfsg-1build2 (coqc 8.18.0), `/usr/bin/coqc` sha256 `f14ab0c140bdfdb31c7e7e1f20379703973376480a4eea2d43d0fa56ddae03ec`
+| `guix.scm` provides no Rocq
+| open
+
+| Lean recheck leg (HD-H-RL)
+| Lean 4.15.0 from the upstream release archive `lean-4.15.0-linux.tar.zst`, sha256 `af71a2569a9f68337de2434829b3008cd8e32c436e9cb6bd8c84a2c2ba3585c9`; `bin/lean` sha256 `eacf754d25ae86ea076882a34b9444f2485659d9df4266b821443b28ca95a215`; core only, no Mathlib or Batteries
+| `guix.scm` provides no Lean; the Ubuntu archive has none
+| open
 |===
 
-All three close together, by a `guix.scm` (or container) that provides these
+All five close together, by a `guix.scm` (or container) that provides these
 tools and a CI that runs in it.
 
 == Files inherited from the template
@@ -386,6 +399,26 @@ artefact survives in the bound target, the caller's directory measures zero,
 and the engine writes COMPLETE. Guarantee alone holds in that state, because
 the count *was* a measured zero. GuaranteeBound is the invariant that sees it.
 
+HD-H-RL (the receipt for the Rocq and Lean legs): coqc 8.18.0 and Lean 4.15.0, 4m07s. The Lean leg peaks at about 0.6 GB. It runs in the `recheck-legs` job of `.github/workflows/proof-kernel.yml`:
+
+[source,text]
+----
+$ bash scripts/check-recheck-legs.sh
+=== Rocq leg: verification/proofs/coq/Haruspex.v (The Coq Proof Assistant, version 8.18.0) ===
+  PASS: compiles; 27 of 27 theorems closed under the global context
+=== Lean leg: verification/proofs/lean4/Haruspex.lean (Lean (version 4.15.0, x86_64-unknown-linux-gnu, commit 11651562caae, Release)) ===
+  PASS: compiles; 27 of 27 theorems depend on no axioms
+RESULT: PASS -- Rocq and Lean legs compile with no axioms; every recorded theorem is reported
+$ bash tests/proofs/recheck_legs_test.sh
+...
+PASS=9 FAIL=0
+----
+
+The gate caught a real case before this receipt. An earlier Lean `latentsFrom`
+was a `mutual` pair, compiled by well-founded recursion, and two explorer
+theorems reported `propext` and `Quot.sound`. It is now one structurally
+recursive function, as in the Rocq leg.
+
 HD-F-E: `bash tests/difftest.sh`, 20m35s:
 
 [source,text]
@@ -415,6 +448,8 @@ bash scripts/check-agda-kernel.sh           # Agda kernel: pinned siblings, MANI
 bash tests/proofs/agda_kernel_gate_test.sh  # the kernel gate's negative controls
 bash scripts/check-tla.sh                   # TLA+: TLC on Engine.tla; both negative controls must be refuted (needs java)
 bash tests/difftest.sh                     # HD-F-E: the Agda and TLA+ models must reproduce the real engine's traces (needs ghc, agda, java)
+bash scripts/check-recheck-legs.sh          # HD-H-RL: the Rocq and Lean legs compile with no axioms (needs coqc 8.18, lean 4.15)
+bash tests/proofs/recheck_legs_test.sh     # the recheck gate's negative controls
 ----
 
 == Changelog
@@ -432,5 +467,5 @@ bash tests/difftest.sh                     # HD-F-E: the Agda and TLA+ models mu
 | 2026-10-26 | HD-F-E: ASSUMED → TESTED with `tests/difftest.sh`: the real engine on 3,183 traces, reproduced by `EngineCore.step` in the proof kernel and replayed by TLC against `Engine.tla`, with a corrupted trace and three engine mutants refused. Not a proof: it covers the traces tried.
 | 2026-10-27 | HD-H: DESIGNED → PROVEN with `Haruspex.agda` (the checker and one soundness lemma per verdict), `HaruspexExplorer.agda` (all 546 configurations of the certified checker's model, by `refl`), `HaruspexIncident.agda` (the worked example) and two refused fixtures; HD-H-R (runtime harness) recorded OPEN; RE widened to the `Finite` modules Haruspex consumes.
 | 2026-11-09 | Statuses moved to the PROOF-POLICY §5 closed vocabulary; HD-1T PROVEN → TESTED (a finite model check), with its §4 exception; the Agda invocation gains `--cubical-compatible` (§2.1); toolchain deviations recorded (§6).
-| 2026-11-09 | Hole found in review and closed: `update <dir>` measured a directory the caller chose, so an empty directory gave COMPLETE for a target that still held work. The target is now bound at the baseline; `update` and `verify` take no argument; the state file has a fifth line (HD-G2). A state file in the old four-line format is refused, with the command that rebinds it. HD-G5: strict parsing (statuses, naturals, bounds). HD-1H: 25 → 32 checks. HD-1T: MeasuresTheTarget, GuaranteeBound and the OtherTarget.cfg control. HD-1A: `verify` takes its reading, `verify-unmeasured`; worded as a statement about the model. HD-F-R: rests on the Fibre lemmas, and the fixture becomes their regression check; every fixture's refusal is pinned to its marked line. HD-F-E: 3,186 traces, with verifier failures on `verify`. HD-H: `sound-given`, `sound-given-query`; "every listed reading". New ASSUMED rows HD-A, HD-A2 and HD-H-A. §4 exceptions for the Agda engine developments (owner decision); import cone and PWG records added.
+| 2026-11-09 | Hole found in review and closed: `update <dir>` measured a directory the caller chose, so an empty directory gave COMPLETE for a target that still held work. The target is now bound at the baseline; `update` and `verify` take no argument; the state file has a fifth line (HD-G2). A state file in the old four-line format is refused, with the command that rebinds it. HD-G5: strict parsing (statuses, naturals, bounds). HD-1H: 25 → 32 checks. HD-1T: MeasuresTheTarget, GuaranteeBound and the OtherTarget.cfg control. HD-1A: `verify` takes its reading, `verify-unmeasured`; worded as a statement about the model. HD-F-R: rests on the Fibre lemmas, and the fixture becomes their regression check; every fixture's refusal is pinned to its marked line. HD-F-E: 3,186 traces, with verifier failures on `verify`. HD-H: `sound-given`, `sound-given-query`; "every listed reading". New ASSUMED rows HD-A, HD-A2 and HD-H-A. §4 exceptions for the Agda engine developments (owner decision); import cone and PWG records added. HD-H-RL: the Rocq and Lean recheck legs of the Haruspex theory theorems, re-proved with no axioms and gated in CI (owner decision, both legs now); their statement correspondence is recorded and BRIDGE-PENDING on the owner's review, so the grade stays PWG-3.
 |===

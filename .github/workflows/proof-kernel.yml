@@ -11,6 +11,8 @@
 # A second job runs the TLA+ gate, scripts/check-tla.sh: TLC at a pinned,
 # hash-checked release model-checks verification/proofs/tlaplus/Engine.tla, and
 # must refute the original, caller-asserted engine (Original.cfg).
+# A third job rechecks the Haruspex theory theorems in Rocq and Lean
+# (scripts/check-recheck-legs.sh), standards PROOF-POLICY section 2.
 # Agda comes from the Ubuntu 24.04 archive (agda-bin 2.6.3), the version the
 # MANIFEST was ground-truthed with.
 
@@ -88,3 +90,37 @@ jobs:
         run: bash scripts/assert-toolchain.sh agda ghc java
       - name: Differential test (models against the engine)
         run: bash tests/difftest.sh
+  recheck-legs:
+    # PROOF-POLICY section 2: the Rocq and Lean recheck legs of the Haruspex
+    # theory theorems (Haruspex.agda, HaruspexExplorer.agda), re-proved. Each
+    # leg must compile and report no axiom for every theorem the correspondence
+    # record names (scripts/check-recheck-legs.sh); then the gate's negative
+    # controls. docs/status/RECHECK-CORRESPONDENCE.adoc records the bridge.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      LEAN_ARCHIVE_SHA256: af71a2569a9f68337de2434829b3008cd8e32c436e9cb6bd8c84a2c2ba3585c9
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+      # PROOF-POLICY section 6 deviation: Rocq from the Ubuntu 24.04 archive,
+      # Lean from the upstream release archive at a pinned SHA-256; neither
+      # from the Guix manifest. The assert step fails on any other version.
+      - name: Install Rocq (Ubuntu 24.04 archive)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends coq zstd
+      - name: Install Lean 4.15.0 (release archive, SHA-256 pinned)
+        run: |
+          curl -fsSL -o lean.tar.zst \
+            https://github.com/leanprover/lean4/releases/download/v4.15.0/lean-4.15.0-linux.tar.zst
+          echo "$LEAN_ARCHIVE_SHA256  lean.tar.zst" | sha256sum -c -
+          sudo mkdir -p /opt/lean
+          sudo tar --zstd -xf lean.tar.zst -C /opt/lean
+          echo /opt/lean/lean-4.15.0-linux/bin >> "$GITHUB_PATH"
+      - name: Assert the pinned toolchain
+        run: bash scripts/assert-toolchain.sh coq lean
+      - name: Recheck legs (Rocq and Lean, no axioms)
+        run: bash scripts/check-recheck-legs.sh
+      - name: Gate refuses its negative controls
+        run: bash tests/proofs/recheck_legs_test.sh
