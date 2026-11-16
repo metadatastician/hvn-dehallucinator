@@ -34,4 +34,6 @@ fetch() {
 
 mkdir -p "$deps"
 # Evidence-refined fibres, empty cases, constructive refutation (2026-10-12).
-fetch residual-evidence-types hyperpolymath/residual-evidence-types 97244f5cb63bd6697caff261b187b62e9788b692
+# Moved 2026-11-16 from 97244f5 to 6f94640: every module this repo imports
+# changed only by adding --cubical-compatible to its OPTIONS pragma.
+fetch residual-evidence-types hyperpolymath/residual-evidence-types 6f94640d370f3470bfbc59f76fa233ee5e9f92b0

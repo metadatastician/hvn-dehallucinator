@@ -1,0 +1,3 @@
+# Runtime state lives here: the engine looks for state/ to find the repo root.
+# state.txt is written by `Engine init <n> <target>` or `Engine init-from <target>`;
+# it binds an absolute, machine-specific target, so it is not tracked.

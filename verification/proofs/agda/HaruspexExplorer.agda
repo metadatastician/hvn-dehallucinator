@@ -1,4 +1,4 @@
-{-# OPTIONS --safe --without-K #-}
+{-# OPTIONS --safe --without-K --cubical-compatible #-}
 -- SPDX-License-Identifier: MPL-2.0
 -- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
 
@@ -6,7 +6,7 @@
 -- finite checker's own model, decides exactly what that checker decides.
 --
 -- Consumes residual-evidence-types by pin:
---   hyperpolymath/residual-evidence-types @ 97244f5cb63bd6697caff261b187b62e9788b692
+--   hyperpolymath/residual-evidence-types @ 6f94640d370f3470bfbc59f76fa233ee5e9f92b0
 --
 -- Each of the explorer's 546 configurations (ResidualEvidence.Finite.Checker,
 -- `allConfigs`) is declared as a Haruspex schema: a reading is a

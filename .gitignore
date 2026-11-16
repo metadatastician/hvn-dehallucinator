@@ -152,6 +152,7 @@ verification/proofs/coq/.*.aux
 .editorconfig
 
 # harvard-dehallucinator runtime state
+state/state.txt
 state/db.json
 state/state.txt.tmp
 

@@ -128,7 +128,9 @@ The fix is a *Harvard architecture*: separate the two memories.
 | "Done" decided by | the agent's recollection | an *independent verifier*
 |===
 
-Task state lives in `state/state.txt`. Progress is measured by
+Task state lives in `state/state.txt`, which is local and untracked: it binds an
+absolute, machine-specific target, so `Engine init <n> <target>` or
+`Engine init-from <target>` creates it on each machine. Progress is measured by
 `engine/verify_register.sh`, run on the target directory bound when the
 baseline was set. The agent may _request_ a re-measurement; it may not
 _supply_ the result, and it may not choose what is measured.

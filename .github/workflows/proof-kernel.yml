@@ -97,7 +97,7 @@ jobs:
     # record names (scripts/check-recheck-legs.sh); then the gate's negative
     # controls. docs/status/RECHECK-CORRESPONDENCE.adoc records the bridge.
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       LEAN_ARCHIVE_SHA256: af71a2569a9f68337de2434829b3008cd8e32c436e9cb6bd8c84a2c2ba3585c9
     steps:
@@ -106,10 +106,10 @@ jobs:
       # PROOF-POLICY section 6 deviation: Rocq from the Ubuntu 24.04 archive,
       # Lean from the upstream release archive at a pinned SHA-256; neither
       # from the Guix manifest. The assert step fails on any other version.
-      - name: Install Rocq (Ubuntu 24.04 archive)
+      - name: Install Rocq and Agda (Ubuntu 24.04 archive)
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends coq zstd
+          sudo apt-get install -y -q --no-install-recommends coq agda-bin zstd
       - name: Install Lean 4.15.0 (release archive, SHA-256 pinned)
         run: |
           curl -fsSL -o lean.tar.zst \
@@ -119,8 +119,16 @@ jobs:
           sudo tar --zstd -xf lean.tar.zst -C /opt/lean
           echo /opt/lean/lean-4.15.0-linux/bin >> "$GITHUB_PATH"
       - name: Assert the pinned toolchain
-        run: bash scripts/assert-toolchain.sh coq lean
+        run: bash scripts/assert-toolchain.sh coq lean agda
       - name: Recheck legs (Rocq and Lean, no axioms)
         run: bash scripts/check-recheck-legs.sh
       - name: Gate refuses its negative controls
         run: bash tests/proofs/recheck_legs_test.sh
+      # The mechanical bridge: Agda (residual-evidence-types' own checker),
+      # Rocq and Lean each compute the 546-row explorer table and must equal
+      # tests/crosscheck/explorer-table.txt; a changed table must be refused.
+      - name: Cross-check the explorer table in all three kernels
+        env:
+          LC_ALL: C.UTF-8
+          LANG: C.UTF-8
+        run: bash tests/crosscheck/check.sh

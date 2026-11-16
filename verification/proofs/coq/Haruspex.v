@@ -9,7 +9,7 @@
    '_'), over definitions that restate Agda's clause for clause. The Core
    vocabulary of residual-evidence-types (Candidate, Case, Holds, Identified,
    Refuted, Disagreeing, Ctx) is restated first, at the pin
-   97244f5cb63bd6697caff261b187b62e9788b692. The translation choices, and how
+   6f94640d370f3470bfbc59f76fa233ee5e9f92b0. The translation choices, and how
    each statement was compared with Agda's, are recorded in
    docs/status/RECHECK-CORRESPONDENCE.adoc.
 

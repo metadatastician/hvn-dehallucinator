@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
 = Recheck correspondence — Haruspex in Rocq and Lean
-:revdate: 2026-11-09
+:revdate: 2026-11-16
 :toc: preamble
 
 The record standards PROOF-POLICY §2 and §2.2 ask for. It covers the
@@ -18,7 +18,7 @@ possible. A transported Rocq leg was not attempted.
 
 Each re-proof restates the Agda definitions clause for clause, and the
 residual-evidence-types Core they rest on, at
-`97244f5cb63bd6697caff261b187b62e9788b692`. Each theorem is then stated with
+`6f94640d370f3470bfbc59f76fa233ee5e9f92b0`. Each theorem is then stated with
 the same hypotheses and conclusion. `scripts/check-recheck-legs.sh` checks
 both legs, and fails on any axiom, `sorry` or admitted lemma. Its negative
 controls are in `tests/proofs/recheck_legs_test.sh`.
@@ -46,6 +46,41 @@ provisional until the owner reviews it.
 Until a leg is RECONCILED it does not count towards a grade (§8.2), so both
 theorems stay at PWG-3. When the owner confirms the comparison below, both
 legs become RECONCILED and the theorems PWG-2ii.
+
+[[mechanical-cross-check]]
+== Mechanical cross-check (2026-11-16)
+
+On the owner's decision of 2026-11-09, part of the reading was replaced by a
+check. `tests/crosscheck/check.sh` makes three kernels compute the same thing:
+for each of the 546 configurations, in `allConfigs` order, the presence
+verdict, the identity status and every candidate world. That is 5,502 worlds
+in all. Each result must equal one shared literal,
+`tests/crosscheck/explorer-table.txt`:
+
+* Agda computes it with residual-evidence-types' own `Finite.Checker` at the
+  pin, by `refl` under the kernel flags;
+* Rocq computes it with the restatement in `Haruspex.v`, by `vm_compute`, with
+  no axiom;
+* Lean computes it with the restatement in `Haruspex.lean`, by kernel
+  reduction, with no axiom.
+
+If a restated checker computed anything different from the original on any
+configuration, its check would fail. A copy of the table with one verdict
+changed is refused by all three kernels. The check runs in CI, in Proof Kernel
+/ recheck-legs.
+
+What this settles, and what it does not:
+
+* For `HaruspexExplorer`, the statements are closed equations over these 546
+  configurations. Each leg proves its own Haruspex equal to its own checker,
+  and the three checkers now agree with the original on every configuration.
+  So the restated explorer statements are mechanically tied to the Agda ones;
+  what remains is reading that each leg states the same four equations.
+* For `Haruspex.Check`, the statements quantify over every schema, so no finite
+  table can settle them. Their correspondence still rests on the side-by-side
+  reading below.
+
+The legs stay BRIDGE-PENDING until the owner rules on both.
 
 == Toolchains and invocations
 
@@ -162,3 +197,10 @@ None of the three legs rests on an axiom (`--safe`; `Print Assumptions`;
 Re-run this comparison, and keep the legs BRIDGE-PENDING until it is redone,
 when any of these changes: `Haruspex.agda`, `HaruspexExplorer.agda`, the
 residual-evidence-types pin, or either restating file.
+
+2026-11-16: the residual-evidence-types pin moved from `97244f5` to `6f94640`.
+In every module this repo imports, the only change is that the `OPTIONS`
+pragma gains `--cubical-compatible`, which the kernel gate already passed. The
+definitions the restatements follow are unchanged, so the comparison above
+stands. The recheck legs and the mechanical cross-check were re-run at the new
+pin, and both pass.

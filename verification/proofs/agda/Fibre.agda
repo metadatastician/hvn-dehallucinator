@@ -1,11 +1,11 @@
-{-# OPTIONS --safe --without-K #-}
+{-# OPTIONS --safe --without-K --cubical-compatible #-}
 -- SPDX-License-Identifier: MPL-2.0
 -- SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell
 
 -- A hallucinated completion is a claim over an empty fibre.
 --
 -- Consumes residual-evidence-types by pin, never by re-declaration:
---   hyperpolymath/residual-evidence-types @ 97244f5cb63bd6697caff261b187b62e9788b692
+--   hyperpolymath/residual-evidence-types @ 6f94640d370f3470bfbc59f76fa233ee5e9f92b0
 --   (scripts/fetch-siblings.sh puts it in _build/dependencies).
 --
 -- Its Core is instantiated for the engine (engine/Engine.hs):

@@ -16,7 +16,7 @@ trap 'rm -rf "$WORK"' EXIT
 
 fixture() { # fixture <dir> <Module> <body>
   mkdir -p "$WORK/$1"
-  { echo '{-# OPTIONS --safe --without-K #-}'; echo "module $2 where"
+  { echo '{-# OPTIONS --safe --without-K --cubical-compatible #-}'; echo "module $2 where"
     echo 'open import ResidualEvidence.Prelude'; echo 'open import Fibre'; echo "$3"; } > "$WORK/$1/$2.agda"
 }
 
