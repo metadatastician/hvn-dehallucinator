@@ -203,8 +203,9 @@ None of the three legs rests on an axiom (`--safe`; `Print Assumptions`;
 
 * the restated residual-evidence-types Core and finite checker are what they
   restate. The Agda leg checks the originals at the pin; the other legs check
-  the restatements. This record is the bridge between them, and is the part
-  that is pending review;
+  the restatements. This record is the bridge between them. For the explorer
+  group the bridge is also mechanical (the cross-check above); for the Check
+  group it is the side-by-side reading, which is pending review;
 * Rocq's `vm_compute` decides the explorer equations with Rocq's bytecode
   virtual machine, which is part of Rocq's trusted base;
 * Lean's `decide +kernel` uses the kernel's own reduction, not compiled code.
@@ -214,10 +215,10 @@ None of the three legs rests on an axiom (`--safe`; `Print Assumptions`;
 Re-run this comparison when any of these changes: `Haruspex.agda`,
 `HaruspexExplorer.agda`, the residual-evidence-types pin, or either restating
 file. A change to any of them returns the affected group to BRIDGE-PENDING
-until the comparison is redone: `HaruspexExplorer` for a change to
-`HaruspexExplorer.agda` or to the explorer table, and `Haruspex.Check` for a
-change to `Haruspex.agda`. A change to the pin or to either restating file
-affects both groups.
+until the comparison is redone. A change to `HaruspexExplorer.agda` or to the
+explorer table affects the `HaruspexExplorer` group. A change to
+`Haruspex.agda`, which `HaruspexExplorer` imports, to the pin or to either
+restating file affects both groups.
 
 2026-11-16: owner ruling, "Explorer now, Check after review". The
 `HaruspexExplorer` legs in Rocq and Lean are RECONCILED, so those four theorems
