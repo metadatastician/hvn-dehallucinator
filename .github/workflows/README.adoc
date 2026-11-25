@@ -18,8 +18,8 @@ either loses real function — keep both.
 
 == Secret scanning is single-sourced
 
-`secret-scanner.yml` calls the standards reusable (gitleaks + a Rust-secrets
-check). An inline TruffleHog job was removed: the reusable deliberately retired
+`secret-scanner.yml` calls the suite reusable in proven-cicd-and-workflows (gitleaks + supplemental secret
+checks). An inline TruffleHog job was removed: the standards reusable deliberately retired
 TruffleHog as redundant with gitleaks, so re-adding it was duplicated work, not
 extra coverage.
 

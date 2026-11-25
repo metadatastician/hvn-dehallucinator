@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: MPL-2.0
+# Lean Axioms Gate — thin caller of the estate's Lean Axioms gate in
+# hyperpolymath/proven-cicd-and-workflows. Enforcing, for standalone
+# (non-Lake) files: the pinned Lean 4.15.0 compiles each listed file, then the
+# gate's own checker re-checks the compiled module out of process: kernel
+# replay of every constant, and any axiom a safe constant uses (sorryAx,
+# Classical.choice, propext, Quot.sound, a declared axiom) fails, module-wide.
+# Nothing the file prints is evidence. Lake projects are proof-runner-check's,
+# which builds them and does not judge axioms. Planted controls prove the
+# judge can say no before its green is credited.
+#
+# Require `lean-axioms / Lean axioms verdict`.
+#
+# Full-SHA pin, DE-ONBOARDED from actions.lock, no `secrets:` — see
+# rust-ci.yml in this directory for why. This gate calls no other reusable
+# workflow, so `contents: read` is all it holds.
+name: Lean Axioms Gate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lean-axioms:
+    uses: hyperpolymath/proven-cicd-and-workflows/.github/workflows/lean-axioms-gate.yml@50a443f01b1b85e4957b893a6f1a0ed2e8a52459 # cicd-suite main
+    with:
+      files: verification/proofs/lean4/Haruspex.lean
+      # The 26 theorems the HD-H-RL correspondence record names
+      # (docs/status/RECHECK-CORRESPONDENCE.adoc). Each must resolve to a constant
+      # of the listed module; axioms are judged module-wide and none is allowed.
+      required_theorems: >-
+        holdsAll_sound holdsAll_complete candidate_mem mem_candidate
+        entailed_sound refuted_sound refuted_refutes unresolved_sound
+        inconsistent_sound entailed_complete identified_sound
+        unidentified_sound unidentified_refutes no_candidate_sound
+        identified_complete actual_sound listing_complete_sound sound_given
+        sound_given_query haruspex to_finite from_finite candidates_match
+        presence_match identity_match outputs_match
+    # Inputs (optional; the defaults are hvn-dehallucinator's layout):
+    #   files: verification/proofs/lean4/Haruspex.lean   # whitespace-separated, no Lake project
+    #   required_theorems: "name1 name2"                 # each must exist in a listed module
+    #   allowed_axioms: ""                               # e.g. "propext"; sorryAx is never allowable
+    #                                                    # (empty by default: name the theorems that matter)

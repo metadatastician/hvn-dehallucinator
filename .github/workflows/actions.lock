@@ -27,7 +27,6 @@ workflows:
         - 'metadatastician/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
     '.github/workflows/label-triage.yml': []
     '.github/workflows/labels.yml': []
-    '.github/workflows/lock-sync-gate.yml': []
     '.github/workflows/mirror.yml':
         - 'metadatastician/standards@75bd5994470661a099df562d6d5ad2fe744dbd66'
     '.github/workflows/openssf-compliance.yml':
@@ -41,6 +40,8 @@ workflows:
         - 'haskell-actions/setup@v2.12.1'
     '.github/workflows/proof-kernel.yml':
         - 'actions/checkout@v7.0.1'
+    '.github/workflows/proven-lock-gate.yml':
+        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
     '.github/workflows/quality.yml':
         - 'actions/checkout@v7.0.1'
         - 'editorconfig-checker/action-editorconfig-checker@v3.0.0'
@@ -53,12 +54,8 @@ workflows:
         - 'actions/checkout@v7.0.1'
     '.github/workflows/runtime-policy.yml':
         - 'actions/checkout@v7.0.1'
-    '.github/workflows/rust-ci.yml':
-        - 'metadatastician/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
     '.github/workflows/scorecard.yml':
         - 'metadatastician/standards@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4'
-    '.github/workflows/secret-scanner.yml':
-        - 'metadatastician/standards@b8f60511e76c9015d86990317162dce653c92fe1'
     '.github/workflows/security-policy.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/sonarqube.yml':

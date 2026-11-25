@@ -1,19 +1,45 @@
-# This workflow is managed by gh actions-lock.
 # SPDX-License-Identifier: MPL-2.0
-# This workflow is managed by gh actions-lock.
-# Rust CI — thin wrapper calling the shared estate reusable in
-# hyperpolymath/standards. Configure once, propagate everywhere.
-# See: docs/CI-REUSABLE-WORKFLOWS.adoc in standards.
+# Rust CI — thin caller of the estate's strict Rust gate, which lives in
+# hyperpolymath/proven-cicd-and-workflows as a reusable workflow. Do not copy its jobs in
+# here: a copy freezes at one cicd-suite commit and never receives a fix.
+#
+# The job id MUST stay `rust-ci`: the contexts `rust-ci / Cargo check +
+# clippy + fmt` and `rust-ci / Cargo test` are what branch rules already
+# require, and `rust-ci / Rust CI verdict` is the one context to require
+# from now on (red if any gate failed OR was skipped while expected).
+#
+# The pin is a full SHA, advanced by track-estate-audit.yml (a PR whose own
+# run of this gate is the check). Never `@main` or a tag: the account
+# enforces sha_pinning_required and a moving ref would change the gate in
+# every repository at once.
+#
+# ⚠ DE-ONBOARDED from actions.lock, deliberately, like the estate-audit
+# caller: an onboarded cross-repo reusable startup-fails with zero jobs
+# under sha_pinning_required. cicd-suite/scripts/deonboard-workflow.sh
+# reverses a re-onboarding.
+#
+# No `secrets:` line: the reusable consumes none.
 name: Rust CI
+
 on:
   push:
     branches: [main, master]
   pull_request:
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 permissions:
+  actions: read
   contents: read
+
 jobs:
   rust-ci:
-    uses: metadatastician/standards/.github/workflows/rust-ci-reusable.yml@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4
+    uses: hyperpolymath/proven-cicd-and-workflows/.github/workflows/rust-ci.yml@50a443f01b1b85e4957b893a6f1a0ed2e8a52459 # cicd-suite main
+    # Inputs (all optional; defaults are the strict ones):
+    #   working_directory: crates/cli   # sub-crate / monorepo
+    #   toolchain: "1.85.0"             # default "auto": rust-toolchain.toml, else stable
+    #   enable_coverage: true           # with coverage_floor: "70"
+    #   zig_version: "0.15.2"           # crates with a Zig-native build
+    #   apt_packages: "capnproto protobuf-compiler"  # system tools the build needs (apt, validated)

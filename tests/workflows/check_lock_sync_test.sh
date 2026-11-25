@@ -5,8 +5,6 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CHECKER="$REPO_ROOT/scripts/check-lock-sync.sh"
-GATE="$REPO_ROOT/.github/workflows/lock-sync-gate.yml"
-LOCK="$REPO_ROOT/.github/workflows/actions.lock"
 FIXTURE_ROOT="$(mktemp -d)"
 trap 'rm -rf "$FIXTURE_ROOT"' EXIT
 
@@ -377,23 +375,12 @@ status=$?
 assert_status 'fails closed when GNU-compatible awk is unavailable' 1
 assert_output_contains 'explains the GNU awk prerequisite' 'no awk supporting 3-argument match()'
 
-echo '== checked-in gate contract =='
-
-assert_file_matches 'gate runs for pull requests' '^  pull_request:$' "$GATE"
-assert_file_matches 'gate supports manual workflow dispatch' '^  workflow_dispatch:$' "$GATE"
-assert_file_matches 'gate runs for pushes to main' '^    branches: \[main\]$' "$GATE"
-assert_file_matches 'gate uses read-only repository contents permission' '^  contents: read$' "$GATE"
-assert_file_not_matches 'gate has no path filter that can suppress a required check' '^[[:space:]]+paths:' "$GATE"
-assert_file_not_matches 'gate carries no action or reusable-workflow uses entry' '^[[:space:]]*-?[[:space:]]*uses:' "$GATE"
-assert_file_matches 'gate checks the pull-request head revision' 'SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}' "$GATE"
-assert_file_matches 'gate executes the lock-sync checker' '^[[:space:]]*\./scripts/check-lock-sync\.sh$' "$GATE"
-assert_file_matches 'lockfile lists the zero-uses lock-sync gate' "^    '.github/workflows/lock-sync-gate\\.yml': \[\]$" "$LOCK"
-
-echo '== current pull-request fixtures =='
-
-output="$(cd "$REPO_ROOT" && "$CHECKER" 2>&1)"
-status=$?
-assert_status 'current pull-request workflows and actions.lock satisfy the checker' 0
+# The checked-in lock-sync-gate.yml and the assertion that the live
+# .github/workflows satisfy this checker are gone: lock-sync-gate.yml was
+# replaced by the suite's stamped proven-lock-gate.yml, and the callers of the
+# suite's reusable workflows are de-onboarded from actions.lock on purpose
+# (see their headers), which this legacy checker reports as unlisted. The
+# checker and its fixture controls above remain; CI no longer runs them.
 
 printf '\nPASS=%d FAIL=%d\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

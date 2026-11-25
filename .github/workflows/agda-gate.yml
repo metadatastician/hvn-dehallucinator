@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: MPL-2.0
+# Agda Gate — thin caller of the estate's Agda gate in
+# hyperpolymath/proven-cicd-and-workflows. Enforcing: the pinned Agda 2.6.3
+# checks every module the MANIFEST lists under --safe --without-K
+# --cubical-compatible --no-libraries --ignore-interfaces --double-check, a
+# .agda file the MANIFEST does not list fails, and each reject fixture must
+# be refused on its marked line. Planted controls prove the prover can say no
+# before its green is credited.
+#
+# Require `agda / Agda verdict`.
+#
+# Full-SHA pin, DE-ONBOARDED from actions.lock, no `secrets:` — see
+# rust-ci.yml in this directory for why. This gate calls no other reusable
+# workflow, so `contents: read` is all it holds.
+name: Agda Gate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  agda:
+    uses: hyperpolymath/proven-cicd-and-workflows/.github/workflows/agda-gate.yml@50a443f01b1b85e4957b893a6f1a0ed2e8a52459 # cicd-suite main
+    # Inputs (optional; the defaults are hvn-dehallucinator's layout):
+    #   manifest: verification/proofs/agda/MANIFEST
+    #   proof_dir: verification/proofs/agda     # every .agda here must be listed
+    #   include_dirs: verification/proofs/agda  # whitespace-separated
+    #   siblings_script: scripts/fetch-siblings.sh  # '' if the tree has no pinned siblings
+    #   siblings_include_glob: _build/dependencies/*/src
+    #   reject_dir: tests/reject                # '' if the tree has no reject fixtures
+
+  # The ruleset requires the context `agda-kernel`, which this repository's
+  # proof-kernel.yml used to produce from its own Agda job. The suite gate
+  # above replaced that job, so this thin job keeps the required context
+  # reporting and makes it reflect the suite verdict. It runs under always():
+  # a skipped job would read as passing to a required check, so anything but
+  # a green suite gate fails here. It holds no permission and runs no repository code.
+  agda-kernel:
+    name: agda-kernel
+    needs: [agda]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    env:
+      AGDA_GATE_RESULT: ${{ needs.agda.result }}
+    steps:
+      - name: Agda kernel verdict is the suite gate's verdict
+        run: |
+          if [ "$AGDA_GATE_RESULT" != success ]; then
+            echo "::error::agda-kernel: the suite Agda gate finished '$AGDA_GATE_RESULT', not success. Red."
+            exit 1
+          fi
+          echo "agda-kernel: the suite Agda gate (agda / Agda verdict) succeeded."

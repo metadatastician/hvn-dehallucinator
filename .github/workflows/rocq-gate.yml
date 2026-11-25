@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: MPL-2.0
+# Rocq Gate — thin caller of the estate's Rocq gate in
+# hyperpolymath/proven-cicd-and-workflows. Enforcing: the pinned Coq 8.18.0
+# compiles each listed .v file, then coqchk re-checks the compiled modules
+# out of process. Any axiom (an Admitted lemma is one), type-in-type, unsafe
+# fixpoint or assumed positivity anywhere in the module fails. Nothing the
+# file prints is evidence. Planted controls prove the judge can say no before
+# its green is credited.
+#
+# Require `rocq / Rocq verdict`.
+#
+# Full-SHA pin, DE-ONBOARDED from actions.lock, no `secrets:` — see
+# rust-ci.yml in this directory for why. This gate calls no other reusable
+# workflow, so `contents: read` is all it holds.
+name: Rocq Gate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rocq:
+    uses: hyperpolymath/proven-cicd-and-workflows/.github/workflows/rocq-gate.yml@50a443f01b1b85e4957b893a6f1a0ed2e8a52459 # cicd-suite main
+    with:
+      files: verification/proofs/coq/Haruspex.v
+      # The 26 theorems the HD-H-RL correspondence record names
+      # (docs/status/RECHECK-CORRESPONDENCE.adoc). Each must resolve to a constant
+      # of the listed module; axioms are judged module-wide and none is allowed.
+      required_theorems: >-
+        holdsAll_sound holdsAll_complete candidate_mem mem_candidate
+        entailed_sound refuted_sound refuted_refutes unresolved_sound
+        inconsistent_sound entailed_complete identified_sound
+        unidentified_sound unidentified_refutes no_candidate_sound
+        identified_complete actual_sound listing_complete_sound sound_given
+        sound_given_query haruspex to_finite from_finite candidates_match
+        presence_match identity_match outputs_match
+    # Inputs (optional; the defaults are hvn-dehallucinator's layout):
+    #   files: verification/proofs/coq/Haruspex.v   # whitespace-separated, dependencies first
+    #   required_theorems: "name1 name2"             # each must exist in a listed module
+    #   allowed_axioms: ""                          # full names coqchk prints; empty by default
+    #                                               # (empty by default: name the theorems that matter)
