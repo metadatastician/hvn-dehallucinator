@@ -23,29 +23,43 @@ the same hypotheses and conclusion. `scripts/check-recheck-legs.sh` checks
 both legs, and fails on any axiom, `sorry` or admitted lemma. Its negative
 controls are in `tests/proofs/recheck_legs_test.sh`.
 
+[[correspondence-status]]
 == Status of the correspondence
 
-[cols="1,1,1,2",options="header"]
-|===
-| Leg | §5 token | §2.2 state | Why
+The state is per theorem group, because the two groups are settled by
+different evidence.
 
-| Agda (source) | PROVEN | AGDA-VERIFIED
+[cols="1,1,1,1,2",options="header"]
+|===
+| Group | Leg | §5 token | §2.2 state | Why
+
+| both | Agda (source) | PROVEN | AGDA-VERIFIED
 | `scripts/check-agda-kernel.sh`, under the §2.1 invocation.
 
-| Rocq | PROVEN | BRIDGE-PENDING
+| `HaruspexExplorer` | Rocq | PROVEN | RECONCILED
+| Owner ruling of 2026-11-16, on the mechanical cross-check (below) and on the
+reading that each leg states the same four equations. The kernel accepts every
+theorem, and none rests on an assumption.
+
+| `HaruspexExplorer` | Lean | PROVEN | RECONCILED
+| As for Rocq.
+
+| `Haruspex.Check` | Rocq | PROVEN | BRIDGE-PENDING
 | The kernel accepts every theorem, and none rests on an assumption. The
 statements were compared with Agda's by reading, side by side (below), by the
 same agent that wrote them. Under the estate's rule that statement
 equivalence is not left to a language model alone, that comparison is
 provisional until the owner reviews it.
 
-| Lean | PROVEN | BRIDGE-PENDING
+| `Haruspex.Check` | Lean | PROVEN | BRIDGE-PENDING
 | As for Rocq.
 |===
 
-Until a leg is RECONCILED it does not count towards a grade (§8.2), so both
-theorems stay at PWG-3. When the owner confirms the comparison below, both
-legs become RECONCILED and the theorems PWG-2ii.
+A leg that is not RECONCILED does not count towards a grade (§8.2). So the
+four `HaruspexExplorer` theorems (candidates-match, presence-match,
+identity-match, outputs-match) are PWG-2ii, and the `Haruspex.Check` theorems
+stay at PWG-3 until the owner confirms the side-by-side reading below. When the
+owner does, the Check legs become RECONCILED and those theorems PWG-2ii.
 
 [[mechanical-cross-check]]
 == Mechanical cross-check (2026-11-16)
@@ -80,7 +94,10 @@ What this settles, and what it does not:
   table can settle them. Their correspondence still rests on the side-by-side
   reading below.
 
-The legs stay BRIDGE-PENDING until the owner rules on both.
+Owner ruling, 2026-11-16: the explorer legs (Rocq and Lean) are RECONCILED,
+on this cross-check and on the reading that each leg states the same four
+equations. The `Haruspex.Check` legs stay BRIDGE-PENDING until the owner
+reviews the side-by-side reading below.
 
 == Toolchains and invocations
 
@@ -186,17 +203,30 @@ None of the three legs rests on an axiom (`--safe`; `Print Assumptions`;
 
 * the restated residual-evidence-types Core and finite checker are what they
   restate. The Agda leg checks the originals at the pin; the other legs check
-  the restatements. This record is the bridge between them, and is the part
-  that is pending review;
+  the restatements. This record is the bridge between them. For the explorer
+  group the bridge is also mechanical (the cross-check above); for the Check
+  group it is the side-by-side reading, which is pending review;
 * Rocq's `vm_compute` decides the explorer equations with Rocq's bytecode
   virtual machine, which is part of Rocq's trusted base;
 * Lean's `decide +kernel` uses the kernel's own reduction, not compiled code.
 
 == Revalidation
 
-Re-run this comparison, and keep the legs BRIDGE-PENDING until it is redone,
-when any of these changes: `Haruspex.agda`, `HaruspexExplorer.agda`, the
-residual-evidence-types pin, or either restating file.
+Re-run this comparison when any of these changes: `Haruspex.agda`,
+`HaruspexExplorer.agda`, the residual-evidence-types pin, or either restating
+file. A change to any of them returns the affected group to BRIDGE-PENDING
+until the comparison is redone. A change to `HaruspexExplorer.agda` or to the
+explorer table affects the `HaruspexExplorer` group. A change to
+`Haruspex.agda`, which `HaruspexExplorer` imports, to the pin or to either
+restating file affects both groups.
+
+2026-11-16: owner ruling, "Explorer now, Check after review". The
+`HaruspexExplorer` legs in Rocq and Lean are RECONCILED, so those four theorems
+are PWG-2ii. The reason is that the explorer statements are closed equations
+over 546 configurations, and the three kernels compute the same table, with a
+mutated table refused by all three. The `Haruspex.Check` legs stay
+BRIDGE-PENDING, and those theorems PWG-3, until the owner reviews the
+side-by-side reading.
 
 2026-11-16: the residual-evidence-types pin moved from `97244f5` to `6f94640`.
 In every module this repo imports, the only change is that the `OPTIONS`
